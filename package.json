@@ -1,0 +1,27 @@
+{
+  "name": "kommo-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP Server for Kommo CRM integration",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "start:http": "node dist/index-http.js",
+    "dev": "ts-node --esm src/index.ts",
+    "dev:http": "ts-node --esm src/index-http.ts"
+  },
+  "keywords": ["mcp", "kommo", "crm", "api"],
+  "author": "MCP Server",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.4.0",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0"
+  }
+}
