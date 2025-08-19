@@ -6,7 +6,7 @@ Servidor MCP (Model Context Protocol) personalizado para integração com o Komm
 
 O servidor MCP do Kommo foi criado com sucesso e está configurado com suas credenciais:
 
-- **URL do Cliente**: `https://kommoaeonprivatelabelcombr.kommo.com`
+- **URL do Cliente**: `https://your-subdomain.kommo.com`
 - **Token de Acesso**: Configurado e funcionando
 - **Imagem Docker**: Construída e testada
 - **Novas Funcionalidades**: Implementadas e prontas para uso
@@ -77,7 +77,7 @@ O servidor já está configurado no arquivo `.cursor/mcp.json`:
         "run",
         "--rm",
         "-i",
-        "-e", "KOMMO_BASE_URL=https://kommoaeonprivatelabelcombr.kommo.com",
+        "-e", "KOMMO_BASE_URL=https://your-subdomain.kommo.com",
         "-e", "KOMMO_ACCESS_TOKEN=SEU_TOKEN_AQUI",
         "kommo-mcp-server"
       ],
@@ -92,7 +92,7 @@ O servidor já está configurado no arquivo `.cursor/mcp.json`:
 ```bash
 # Executar o servidor MCP do Kommo
 docker run --rm -i \
-  -e KOMMO_BASE_URL=https://kommoaeonprivatelabelcombr.kommo.com \
+  -e KOMMO_BASE_URL=https://your-subdomain.kommo.com \
   -e KOMMO_ACCESS_TOKEN=SEU_TOKEN_AQUI \
   kommo-mcp-server
 ```
