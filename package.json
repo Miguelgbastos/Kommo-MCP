@@ -2,14 +2,12 @@
   "name": "kommo-mcp-server",
   "version": "1.0.0",
   "description": "MCP Server for Kommo CRM integration",
-  "main": "dist/index.js",
+  "main": "dist/http-streamable.js",
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
-    "start:http": "node dist/index-http.js",
-    "dev": "ts-node --esm src/index.ts",
-    "dev:http": "ts-node --esm src/index-http.ts"
+    "start": "node dist/http-streamable.js",
+    "dev": "ts-node --esm src/http-streamable.ts"
   },
   "keywords": [
     "mcp",

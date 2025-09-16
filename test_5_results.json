@@ -1,0 +1,96 @@
+{
+  "summary": {
+    "total": 5,
+    "successful": 5,
+    "failed": 0,
+    "duration": 260.381,
+    "avgTimePerQuestion": 50.072
+  },
+  "results": [
+    {
+      "question": "quantas vendas tivemos hoje?",
+      "success": true,
+      "responseTime": 48.887,
+      "metadata": {
+        "total_leads_analyzed": 13932,
+        "temporal_filter": "today",
+        "category_filter": null,
+        "month_filter": null,
+        "current_year": 2025,
+        "timestamp": "2025-09-16T19:46:19.964Z"
+      },
+      "cacheHit": false,
+      "temporalFilter": "today",
+      "categoryFilter": null,
+      "totalLeads": 13932
+    },
+    {
+      "question": "quantas vendas de tráfego ontem?",
+      "success": true,
+      "responseTime": 51.99,
+      "metadata": {
+        "total_leads_analyzed": 13932,
+        "temporal_filter": "yesterday",
+        "category_filter": "tráfego",
+        "month_filter": null,
+        "current_year": 2025,
+        "timestamp": "2025-09-16T19:47:13.965Z"
+      },
+      "cacheHit": false,
+      "temporalFilter": "yesterday",
+      "categoryFilter": "tráfego",
+      "totalLeads": 13932
+    },
+    {
+      "question": "quantos contatos temos esta semana?",
+      "success": true,
+      "responseTime": 50.814,
+      "metadata": {
+        "total_leads_analyzed": 13932,
+        "temporal_filter": "week",
+        "category_filter": null,
+        "month_filter": null,
+        "current_year": 2025,
+        "timestamp": "2025-09-16T19:48:06.780Z"
+      },
+      "cacheHit": false,
+      "temporalFilter": "week",
+      "categoryFilter": null,
+      "totalLeads": 13932
+    },
+    {
+      "question": "qual o valor total de vendas de design em setembro?",
+      "success": true,
+      "responseTime": 47.746,
+      "metadata": {
+        "total_leads_analyzed": 13932,
+        "temporal_filter": null,
+        "category_filter": "design",
+        "month_filter": 8,
+        "current_year": 2025,
+        "timestamp": "2025-09-16T19:48:56.528Z"
+      },
+      "cacheHit": false,
+      "temporalFilter": null,
+      "categoryFilter": "design",
+      "totalLeads": 13932
+    },
+    {
+      "question": "quantas vendas de marketing tivemos no mês passado?",
+      "success": true,
+      "responseTime": 50.923,
+      "metadata": {
+        "total_leads_analyzed": 13932,
+        "temporal_filter": "last_month",
+        "category_filter": "marketing",
+        "month_filter": 2,
+        "current_year": 2025,
+        "timestamp": "2025-09-16T19:49:49.449Z"
+      },
+      "cacheHit": false,
+      "temporalFilter": "last_month",
+      "categoryFilter": "marketing",
+      "totalLeads": 13932
+    }
+  ]
+}

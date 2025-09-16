@@ -1,0 +1,71 @@
+{
+  "summary": {
+    "total": 10,
+    "successful": 0,
+    "failed": 10,
+    "duration": 514.681,
+    "avgTimePerQuestion": 0
+  },
+  "results": [
+    {
+      "question": "quantas vendas tivemos hoje?",
+      "success": false,
+      "responseTime": 48.307,
+      "error": "Unexpected token d in JSON at position 0"
+    },
+    {
+      "question": "quantas vendas de tráfego ontem?",
+      "success": false,
+      "responseTime": 49.041,
+      "error": "Unexpected token d in JSON at position 0"
+    },
+    {
+      "question": "quantos contatos temos esta semana?",
+      "success": false,
+      "responseTime": 51.081,
+      "error": "Unexpected token d in JSON at position 0"
+    },
+    {
+      "question": "qual o valor total de vendas de design em setembro?",
+      "success": false,
+      "responseTime": 53.346,
+      "error": "Unexpected token d in JSON at position 0"
+    },
+    {
+      "question": "quantas vendas de marketing tivemos no mês passado?",
+      "success": false,
+      "responseTime": 49.715,
+      "error": "Unexpected token d in JSON at position 0"
+    },
+    {
+      "question": "mostre análise de suporte esta semana",
+      "success": false,
+      "responseTime": 47.688,
+      "error": "Unexpected token d in JSON at position 0"
+    },
+    {
+      "question": "quantos leads de produtos tivemos hoje?",
+      "success": false,
+      "responseTime": 51.854,
+      "error": "Unexpected token d in JSON at position 0"
+    },
+    {
+      "question": "qual a origem dos leads de ontem?",
+      "success": false,
+      "responseTime": 49.128,
+      "error": "Unexpected token d in JSON at position 0"
+    },
+    {
+      "question": "quantas vendas de valores tivemos esta semana?",
+      "success": false,
+      "responseTime": 54.173,
+      "error": "Unexpected token d in JSON at position 0"
+    },
+    {
+      "question": "análise de status dos leads de hoje",
+      "success": false,
+      "responseTime": 50.322,
+      "error": "Unexpected token d in JSON at position 0"
+    }
+  ]
+}

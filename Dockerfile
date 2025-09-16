@@ -1,4 +1,5 @@
-FROM node:20-slim
+# Build stage
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -6,27 +7,43 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (including dev dependencies for build)
-RUN npm install
+RUN npm ci
 
-# Copy source code
-COPY . .
+# Copy source code and config
+COPY src/ ./src/
+COPY tsconfig.json ./
 
 # Build the application
 RUN npm run build
 
-# Remove dev dependencies
-RUN npm prune --omit=dev
+# Production stage
+FROM node:20-slim AS production
 
-# Create a non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nodejs
+WORKDIR /app
 
-# Change ownership of the app directory
-RUN chown -R nodejs:nodejs /app
-USER nodejs
+# Copy package files
+COPY package*.json ./
 
-# Expose port for HTTP transport
+# Install only production dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built application from builder stage
+COPY --from=builder /app/dist ./dist
+
+# Copy environment file
+COPY .env ./
+
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+
+# Expose port
 EXPOSE 3001
 
-# Start the HTTP server by default
-CMD ["npm", "run", "start:http"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3001/health || exit 1
+
+# Start the server
+CMD ["node", "dist/http-streamable.js"]

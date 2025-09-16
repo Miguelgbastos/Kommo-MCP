@@ -202,6 +202,52 @@ export class KommoAPI {
     return response.data;
   }
 
+  async getAllLeads(params?: any): Promise<KommoLead[]> {
+    const allLeads: KommoLead[] = [];
+    let page = 1;
+    let hasMore = true;
+    const limit = 250; // API limit per page
+    let consecutiveEmptyPages = 0;
+    const maxEmptyPages = 2; // Stop after 2 consecutive empty pages
+
+    while (hasMore && consecutiveEmptyPages < maxEmptyPages) {
+      try {
+        const response = await this.client.get('/api/v4/leads', { 
+          params: { 
+            ...params, 
+            limit, 
+            page 
+          } 
+        });
+        
+        const data = response.data;
+        const leads = data._embedded?.leads || [];
+        
+        if (leads.length === 0) {
+          consecutiveEmptyPages++;
+        } else {
+          consecutiveEmptyPages = 0;
+          allLeads.push(...leads);
+        }
+        
+        page++;
+        
+        // Check if there's a next page
+        hasMore = !!data._links?.next;
+        
+        // Add small delay to avoid rate limiting
+        if (hasMore) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      } catch (error) {
+        console.error(`Error fetching page ${page}:`, error);
+        break;
+      }
+    }
+
+    return allLeads;
+  }
+
   async getLead(id: number): Promise<KommoLead> {
     const response = await this.client.get(`/api/v4/leads/${id}`);
     return response.data;
