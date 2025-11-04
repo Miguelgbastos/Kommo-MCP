@@ -2,6 +2,10 @@
 
 Servidor MCP (Model Context Protocol) para integração com o Kommo CRM.
 
+<a href="https://glama.ai/mcp/servers/@Miguelgbastos/Kommo-MCP">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@Miguelgbastos/Kommo-MCP/badge" alt="Kommo CRM Server MCP server" />
+</a>
+
 ## 🚀 Funcionalidades
 
 - **Análise de Vendas**: Consultas sobre vendas por período e categoria
