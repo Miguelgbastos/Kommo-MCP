@@ -2,6 +2,11 @@
 
 Servidor [MCP](https://modelcontextprotocol.io) (Model Context Protocol) para integração com o [Kommo CRM](https://pt-developers.kommo.com/docs/kommo-para-desenvolvedores). Expõe tools, resources e prompts para clientes MCP (Cursor, Claude, etc.).
 
+<a href="https://glama.ai/mcp/servers/@Miguelgbastos/Kommo-MCP">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@Miguelgbastos/Kommo-MCP/badge" alt="Kommo CRM Server MCP server" />
+</a>
+
+## 🚀 Funcionalidades
 ## Funcionalidades
 
 - **Protocolo MCP**: Lifecycle (initialize / initialized), transporte Streamable HTTP, validação de headers (`MCP-Protocol-Version`, `MCP-Session-Id`)
