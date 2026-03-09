@@ -1,13 +1,19 @@
 import express from 'express';
 import cors from 'cors';
+import crypto from 'crypto';
 import { KommoAPI } from './kommo-api.js';
 import dotenv from 'dotenv';
+
+// MCP: This server implements the Model Context Protocol manually (lifecycle, tools, resources, prompts).
+// An optional migration path is to use @modelcontextprotocol/sdk: Server + SSEServerTransport from
+// "server/sse" with Express (GET for SSE stream, POST for messages), and setRequestHandler for each
+// method, delegating to the same KommoAPI and business logic used here.
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT) || 3001;
 
 // Environment configuration
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -645,23 +651,170 @@ function getMonthFromQuestion(question: string): number | null {
   return null;
 }
 
-// MCP endpoint
-app.post('/mcp', async (req, res) => {
-  logger.info('🚀 Iniciando servidor MCP Kommo', { 
-    baseUrl: process.env.KOMMO_BASE_URL,
-    environment: process.env.NODE_ENV 
-  });
+// MCP protocol version supported by this server
+const MCP_PROTOCOL_VERSION = '2025-06-18';
 
+// In-memory session store: sessionId -> { initialized: boolean }
+// Used to enforce lifecycle (optional: reject tools/list and tools/call until initialized).
+const mcpSessions = new Map<string, { initialized: boolean }>();
+
+const SUPPORTED_PROTOCOL_VERSIONS = ['2025-06-18', '2024-11-05'];
+
+function getOrCreateSession(sessionId: string | undefined): { initialized: boolean } {
+  const id = sessionId || 'default';
+  if (!mcpSessions.has(id)) {
+    mcpSessions.set(id, { initialized: false });
+  }
+  return mcpSessions.get(id)!;
+}
+
+/** Send MCP JSON-RPC response as SSE or JSON depending on Accept header */
+function sendMcpResponse(res: express.Response, payload: object, req: express.Request): void {
+  const accept = (req.headers['accept'] || '').toLowerCase();
+  if (accept.includes('application/json') && !accept.includes('text/event-stream')) {
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).json(payload);
+  } else {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    res.end();
+  }
+}
+
+// MCP endpoint
+app.post('/mcp', async (req, res) => {
+  logger.info('🚀 Requisição MCP Kommo', { 
+    baseUrl: process.env.KOMMO_BASE_URL,
+    environment: process.env.NODE_ENV 
+  });
+
+  // -------- Security: Origin validation (DNS rebinding mitigation) --------
+  const allowedOrigins = process.env.MCP_ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean);
+  if (allowedOrigins && allowedOrigins.length > 0) {
+    const origin = req.headers.origin;
+    if (origin && !allowedOrigins.includes(origin)) {
+      res.status(403).json({
+        jsonrpc: '2.0',
+        error: { code: -32000, message: 'Origin not allowed' }
+      });
+      return;
+    }
+  }
+
+  // -------- Security: Authentication (optional, when MCP_AUTH_TOKEN is set) --------
+  const authToken = process.env.MCP_AUTH_TOKEN;
+  if (authToken) {
+    const bearer = req.headers.authorization?.replace(/^Bearer\s+/i, '');
+    const apiKey = req.headers['x-api-key'];
+    const provided = bearer || apiKey;
+    if (provided !== authToken) {
+      res.status(401).json({
+        jsonrpc: '2.0',
+        error: { code: -32001, message: 'Unauthorized: invalid or missing token' }
+      });
+      return;
+    }
+  }
 
   try {
-    const { method, params, id } = req.body;
-    
+    // Validate body is a single JSON object (MCP spec)
+    const body = req.body;
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      res.status(400).json({
+        jsonrpc: '2.0',
+        error: { code: -32600, message: 'Invalid request: body must be a single JSON object' }
+      });
+      return;
+    }
+
+    const { method, params, id } = body;
     logger.debug('📨 Requisição MCP recebida', { method, params, id });
+
+    // -------- MCP-Protocol-Version (required for all requests except initialize) --------
+    if (method !== 'initialize') {
+      const protocolVersion = req.headers['mcp-protocol-version'] as string | undefined;
+      if (!protocolVersion || !SUPPORTED_PROTOCOL_VERSIONS.includes(protocolVersion)) {
+        res.status(400).json({
+          jsonrpc: '2.0',
+          error: {
+            code: -32600,
+            message: 'Missing or unsupported MCP-Protocol-Version header',
+            data: { supported: SUPPORTED_PROTOCOL_VERSIONS }
+          }
+        });
+        return;
+      }
+    }
+
+    // -------- JSON-RPC notification (no id): respond 202 Accepted, no body --------
+    if (id === undefined && method !== undefined) {
+      if (method === 'notifications/initialized') {
+        const sessionId = req.headers['mcp-session-id'] as string | undefined;
+        const session = getOrCreateSession(sessionId);
+        session.initialized = true;
+      }
+      res.status(202).end();
+      return;
+    }
+
+    // -------- Lifecycle: initialize --------
+    if (method === 'initialize') {
+      const newSessionId = crypto.randomUUID();
+      getOrCreateSession(newSessionId);
+      const initResponse = {
+        jsonrpc: '2.0' as const,
+        id,
+        result: {
+          protocolVersion: MCP_PROTOCOL_VERSION,
+          capabilities: {
+            tools: { listChanged: false }  // Lista de tools estática; se mudar em runtime, usar true e enviar notifications/tools/list_changed
+          },
+          resources: {},
+          prompts: {},
+          serverInfo: {
+            name: 'kommo-mcp-server',
+            version: '1.0.0',
+            description: 'MCP Server for Kommo CRM integration'
+          }
+        }
+      };
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      res.setHeader('MCP-Session-Id', newSessionId);
+      res.write(`data: ${JSON.stringify(initResponse)}\n\n`);
+      res.end();
+      return;
+    }
+
+    // -------- Lifecycle: notifications/initialized (with id - request form) --------
+    if (method === 'notifications/initialized') {
+      const sessionId = req.headers['mcp-session-id'] as string | undefined;
+      const session = getOrCreateSession(sessionId);
+      session.initialized = true;
+      res.status(202).end();
+      return;
+    }
+
+    // Optional: reject tools/list and tools/call if not initialized (per-session when session id is used)
+    const sessionId = req.headers['mcp-session-id'] as string | undefined;
+    const session = getOrCreateSession(sessionId);
+    if ((method === 'tools/list' || method === 'tools/call') && !session.initialized) {
+      // Allow for backward compatibility: many clients may not send initialize/initialized
+      // So we do not reject; session.initialized will stay false until client sends notifications/initialized
+    }
+
+    // SSE headers for all other MCP responses
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     if (method === 'tools/list') {
       const response = {
@@ -669,91 +822,172 @@ app.post('/mcp', async (req, res) => {
         id,
         result: {
           tools: [
-        {
-          name: 'get_leads',
+            {
+              name: 'get_leads',
+              title: 'Listar leads',
               description: 'Obter lista de leads do Kommo CRM',
-          inputSchema: {
-            type: 'object',
-            properties: {
+              inputSchema: {
+                type: 'object',
+                properties: {
                   limit: { type: 'number', description: 'Número máximo de leads (padrão: 1000)' },
                   page: { type: 'number', description: 'Página para paginação (padrão: 1)' }
-                }
+                },
+                additionalProperties: false
               }
             },
             {
               name: 'create_lead',
+              title: 'Criar lead',
               description: 'Criar um novo lead no Kommo CRM',
-          inputSchema: {
-            type: 'object',
-            properties: {
+              inputSchema: {
+                type: 'object',
+                properties: {
                   name: { type: 'string', description: 'Nome do lead' },
                   price: { type: 'number', description: 'Valor do lead' },
                   status_id: { type: 'number', description: 'ID do status' }
                 },
-                required: ['name']
+                required: ['name'],
+                additionalProperties: false
               }
             },
             {
               name: 'get_sales_report',
+              title: 'Relatório de vendas',
               description: 'Obter relatório de vendas do Kommo CRM',
-          inputSchema: {
-            type: 'object',
-            properties: {
+              inputSchema: {
+                type: 'object',
+                properties: {
                   limit: { type: 'number', description: 'Número máximo de leads (padrão: 1000)' },
-                  page: { type: 'number', description: 'Página para paginação (padrão: 1)' }
-                }
-          }
-        },
-        {
-          name: 'get_contacts',
+                  page: { type: 'number', description: 'Página para paginação (padrão: 1)' },
+                  dateFrom: { type: 'string', description: 'Data inicial (YYYY-MM-DD)' },
+                  dateTo: { type: 'string', description: 'Data final (YYYY-MM-DD)' }
+                },
+                additionalProperties: false
+              }
+            },
+            {
+              name: 'get_contacts',
+              title: 'Listar contatos',
               description: 'Obter lista de contatos do Kommo CRM',
-          inputSchema: {
-            type: 'object',
-            properties: {
+              inputSchema: {
+                type: 'object',
+                properties: {
                   limit: { type: 'number', description: 'Número máximo de contatos (padrão: 1000)' },
                   page: { type: 'number', description: 'Página para paginação (padrão: 1)' }
-                }
-          }
-        },
-        {
-          name: 'get_companies',
+                },
+                additionalProperties: false
+              }
+            },
+            {
+              name: 'get_companies',
+              title: 'Listar empresas',
               description: 'Obter lista de empresas do Kommo CRM',
-          inputSchema: {
-            type: 'object',
-            properties: {
+              inputSchema: {
+                type: 'object',
+                properties: {
                   limit: { type: 'number', description: 'Número máximo de empresas (padrão: 1000)' },
                   page: { type: 'number', description: 'Página para paginação (padrão: 1)' }
-                }
-          }
-        },
-        {
-          name: 'get_tasks',
+                },
+                additionalProperties: false
+              }
+            },
+            {
+              name: 'get_tasks',
+              title: 'Listar tarefas',
               description: 'Obter lista de tarefas do Kommo CRM',
-          inputSchema: {
-            type: 'object',
-            properties: {
+              inputSchema: {
+                type: 'object',
+                properties: {
                   limit: { type: 'number', description: 'Número máximo de tarefas (padrão: 1000)' },
                   page: { type: 'number', description: 'Página para paginação (padrão: 1)' }
-                }
+                },
+                additionalProperties: false
+              }
+            },
+            {
+              name: 'get_loss_reasons',
+              title: 'Listar motivos de perda',
+              description: 'Obter lista de motivos da perda de leads (API 2026)',
+              inputSchema: {
+                type: 'object',
+                properties: {},
+                additionalProperties: false
+              }
+            },
+            {
+              name: 'pin_note',
+              title: 'Fixar nota',
+              description: 'Fixar uma nota no cartão da entidade (lead, contato ou empresa)',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  entity_type: { type: 'string', enum: ['leads', 'contacts', 'companies'], description: 'Tipo da entidade' },
+                  note_id: { type: 'number', description: 'ID da nota' }
+                },
+                required: ['entity_type', 'note_id'],
+                additionalProperties: false
+              }
+            },
+            {
+              name: 'unpin_note',
+              title: 'Desafixar nota',
+              description: 'Desafixar uma nota no cartão da entidade',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  entity_type: { type: 'string', enum: ['leads', 'contacts', 'companies'], description: 'Tipo da entidade' },
+                  note_id: { type: 'number', description: 'ID da nota' }
+                },
+                required: ['entity_type', 'note_id'],
+                additionalProperties: false
+              }
+            },
+            {
+              name: 'run_salesbot',
+              title: 'Iniciar Salesbot',
+              description: 'Iniciar um Salesbot (API v4). Requer entity_id e entity_type (ex.: lead).',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  entity_id: { type: 'number', description: 'ID da entidade (ex.: lead)' },
+                  entity_type: { type: 'string', description: 'Tipo da entidade (ex.: leads)' }
+                },
+                required: ['entity_id', 'entity_type'],
+                additionalProperties: true
+              }
+            },
+            {
+              name: 'stop_salesbot',
+              title: 'Parar Salesbot',
+              description: 'Parar um Salesbot pelo ID do bot',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  bot_id: { type: 'number', description: 'ID do bot Salesbot' }
+                },
+                required: ['bot_id'],
+                additionalProperties: false
               }
             },
             {
               name: 'ask_kommo',
+              title: 'Perguntar ao Kommo',
               description: 'Fazer perguntas inteligentes sobre dados do Kommo CRM usando IA conversacional',
-          inputSchema: {
-            type: 'object',
-            properties: {
+              inputSchema: {
+                type: 'object',
+                properties: {
                   question: { type: 'string', description: 'Pergunta sobre dados do Kommo CRM' }
                 },
-                required: ['question']
+                required: ['question'],
+                additionalProperties: false
               }
             }
           ]
         }
       };
 
-      res.write(`data: ${JSON.stringify(response)}\n\n`);
-      res.end();
+      sendMcpResponse(res, response, req);
+      return;
     }
 
     else if (method === 'tools/call') {
@@ -1346,7 +1580,7 @@ app.post('/mcp', async (req, res) => {
             const tasksLimit = args?.limit || 1000;
             const tasksPage = args?.page || 1;
             const tasksData = await kommoAPI.getTasks({ limit: tasksLimit, page: tasksPage });
-            
+
             result = {
               content: [
                 {
@@ -1356,6 +1590,77 @@ app.post('/mcp', async (req, res) => {
               ]
             };
             break;
+
+          case 'get_loss_reasons':
+            const lossReasonsData = await kommoAPI.getLossReasons();
+            result = {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(lossReasonsData, null, 2)
+                }
+              ]
+            };
+            break;
+
+          case 'pin_note': {
+            const pinEntityType = args?.entity_type as 'leads' | 'contacts' | 'companies';
+            const pinNoteId = args?.note_id as number;
+            if (!pinEntityType || !['leads', 'contacts', 'companies'].includes(pinEntityType) || typeof pinNoteId !== 'number') {
+              result = {
+                content: [{ type: 'text' as const, text: 'Requer entity_type (leads|contacts|companies) e note_id (número).' }],
+                isError: true
+              };
+            } else {
+              const pinResult = await kommoAPI.pinNote(pinEntityType, pinNoteId);
+              result = { content: [{ type: 'text' as const, text: JSON.stringify(pinResult, null, 2) }] };
+            }
+            break;
+          }
+
+          case 'unpin_note': {
+            const unpinEntityType = args?.entity_type as 'leads' | 'contacts' | 'companies';
+            const unpinNoteId = args?.note_id as number;
+            if (!unpinEntityType || !['leads', 'contacts', 'companies'].includes(unpinEntityType) || typeof unpinNoteId !== 'number') {
+              result = {
+                content: [{ type: 'text' as const, text: 'Requer entity_type (leads|contacts|companies) e note_id (número).' }],
+                isError: true
+              };
+            } else {
+              const unpinResult = await kommoAPI.unpinNote(unpinEntityType, unpinNoteId);
+              result = { content: [{ type: 'text' as const, text: JSON.stringify(unpinResult, null, 2) }] };
+            }
+            break;
+          }
+
+          case 'run_salesbot': {
+            const runEntityId = args?.entity_id as number;
+            const runEntityType = args?.entity_type as string;
+            if (typeof runEntityId !== 'number' || !runEntityType) {
+              result = {
+                content: [{ type: 'text' as const, text: 'Requer entity_id (número) e entity_type (ex.: leads).' }],
+                isError: true
+              };
+            } else {
+              const runResult = await kommoAPI.runSalesbot({ entity_id: runEntityId, entity_type: runEntityType, ...args });
+              result = { content: [{ type: 'text' as const, text: JSON.stringify(runResult, null, 2) }] };
+            }
+            break;
+          }
+
+          case 'stop_salesbot': {
+            const stopBotId = args?.bot_id as number;
+            if (typeof stopBotId !== 'number') {
+              result = {
+                content: [{ type: 'text' as const, text: 'Requer bot_id (número).' }],
+                isError: true
+              };
+            } else {
+              const stopResult = await kommoAPI.stopSalesbot(stopBotId);
+              result = { content: [{ type: 'text' as const, text: JSON.stringify(stopResult, null, 2) }] };
+            }
+            break;
+          }
 
           default:
             throw new Error(`Unknown tool: ${name}`);
@@ -1367,24 +1672,128 @@ app.post('/mcp', async (req, res) => {
           result
         };
 
-        res.write(`data: ${JSON.stringify(response)}\n\n`);
-        res.end();
+        sendMcpResponse(res, response, req);
 
       } catch (error) {
         logger.error(`❌ Erro ao executar ferramenta ${name}`, error);
-        
-        const errorResponse = {
+        const message = error instanceof Error ? error.message : 'Internal error';
+        // Tool execution errors (API failure, validation): return result with isError: true
+        // Protocol errors (unknown tool, etc.): return JSON-RPC error
+        if (message.startsWith('Unknown tool:')) {
+          const errorResponse = {
+            jsonrpc: '2.0',
+            id,
+            error: {
+              code: -32601,
+              message
+            }
+          };
+          sendMcpResponse(res, errorResponse, req);
+        } else {
+          const toolErrorResult = {
+            jsonrpc: '2.0' as const,
+            id,
+            result: {
+              content: [{ type: 'text' as const, text: message }],
+              isError: true
+            }
+          };
+          sendMcpResponse(res, toolErrorResult, req);
+        }
+      }
+    }
+
+    else if (method === 'resources/list') {
+      const response = {
+        jsonrpc: '2.0',
+        id,
+        result: {
+          resources: [
+            { uri: 'kommo://reports/sales', name: 'Relatório de vendas', description: 'Resumo de vendas do Kommo CRM', mimeType: 'application/json' },
+            { uri: 'kommo://pipelines', name: 'Pipelines', description: 'Lista de pipelines de vendas', mimeType: 'application/json' },
+            { uri: 'kommo://loss_reasons', name: 'Motivos da perda de leads', description: 'Lista de motivos da perda de leads (API 2026)', mimeType: 'application/json' }
+          ]
+        }
+      };
+      sendMcpResponse(res, response, req);
+    }
+
+    else if (method === 'resources/read') {
+      const uri = params?.uri as string | undefined;
+      if (!uri || (uri !== 'kommo://reports/sales' && uri !== 'kommo://pipelines' && uri !== 'kommo://loss_reasons')) {
+        sendMcpResponse(res, {
           jsonrpc: '2.0',
           id,
-          error: {
-            code: -32603,
-            message: error instanceof Error ? error.message : 'Internal error'
+          error: { code: -32602, message: 'Unknown resource URI', data: { uri } }
+        }, req);
+        return;
+      }
+      try {
+        let text: string;
+        if (uri === 'kommo://reports/sales') {
+          const dateTo = new Date();
+          const dateFrom = new Date(dateTo);
+          dateFrom.setMonth(dateFrom.getMonth() - 1);
+          const salesData = await kommoAPI.getSalesReport(dateFrom.toISOString().slice(0, 10), dateTo.toISOString().slice(0, 10));
+          text = JSON.stringify(salesData, null, 2);
+        } else if (uri === 'kommo://loss_reasons') {
+          const lossReasonsData = await kommoAPI.getLossReasons();
+          text = JSON.stringify(lossReasonsData, null, 2);
+        } else {
+          const pipelinesData = await kommoAPI.getPipelines();
+          text = JSON.stringify(pipelinesData, null, 2);
+        }
+        const response = {
+          jsonrpc: '2.0',
+          id,
+          result: {
+            contents: [{ type: 'text' as const, text }]
           }
         };
-
-        res.write(`data: ${JSON.stringify(errorResponse)}\n\n`);
-        res.end();
+        sendMcpResponse(res, response, req);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to read resource';
+        sendMcpResponse(res, {
+          jsonrpc: '2.0',
+          id,
+          result: { content: [{ type: 'text' as const, text: msg }], isError: true }
+        }, req);
       }
+    }
+
+    else if (method === 'prompts/list') {
+      const response = {
+        jsonrpc: '2.0',
+        id,
+        result: {
+          prompts: [
+            { name: 'analisar_vendas_mes', description: 'Analisar vendas do mês', arguments: [] },
+            { name: 'resumo_leads_status', description: 'Resumo de leads por status', arguments: [] }
+          ]
+        }
+      };
+      sendMcpResponse(res, response, req);
+    }
+
+    else if (method === 'prompts/get') {
+      const promptName = params?.name as string | undefined;
+      if (!promptName || (promptName !== 'analisar_vendas_mes' && promptName !== 'resumo_leads_status')) {
+        sendMcpResponse(res, {
+          jsonrpc: '2.0',
+          id,
+          error: { code: -32602, message: 'Unknown prompt name', data: { name: promptName } }
+        }, req);
+        return;
+      }
+      const messages = promptName === 'analisar_vendas_mes'
+        ? [{ role: 'user' as const, content: { type: 'text' as const, text: 'Quantas vendas tivemos este mês? Mostre valor total e ticket médio.' } }]
+        : [{ role: 'user' as const, content: { type: 'text' as const, text: 'Mostre um resumo de leads por status.' } }];
+      const response = {
+        jsonrpc: '2.0',
+        id,
+        result: { messages }
+      };
+      sendMcpResponse(res, response, req);
     }
 
     else {
@@ -1397,8 +1806,7 @@ app.post('/mcp', async (req, res) => {
         }
       };
 
-      res.write(`data: ${JSON.stringify(errorResponse)}\n\n`);
-      res.end();
+      sendMcpResponse(res, errorResponse, req);
     }
 
   } catch (error) {
@@ -1413,8 +1821,11 @@ app.post('/mcp', async (req, res) => {
       }
     };
 
-    res.write(`data: ${JSON.stringify(errorResponse)}\n\n`);
-    res.end();
+    if (typeof req.body === 'object' && !Array.isArray(req.body)) {
+      sendMcpResponse(res, errorResponse, req);
+    } else {
+      res.status(500).json(errorResponse);
+    }
   }
 });
 
@@ -1426,9 +1837,10 @@ app.options('/mcp', (req, res) => {
   res.sendStatus(200);
 });
 
-// Start server
-app.listen(PORT, () => {
-  logger.info(`🚀 Servidor MCP Kommo rodando na porta ${PORT}`, {
+// Start server (bind to MCP_HOST, default 127.0.0.1 for local security)
+const HOST = process.env.MCP_HOST || '127.0.0.1';
+app.listen(PORT, HOST, () => {
+  logger.info(`🚀 Servidor MCP Kommo rodando em http://${HOST}:${PORT}`, {
     environment: process.env.NODE_ENV || 'development',
     kommo_base_url: process.env.KOMMO_BASE_URL || 'https://api-g.kommo.com',
     current_year: currentYear
