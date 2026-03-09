@@ -119,6 +119,14 @@ export interface KommoStatus {
   account_id: number;
 }
 
+// Motivos da perda de leads (API 2026)
+export interface KommoLossReason {
+  id: number;
+  name: string;
+  sort: number;
+  is_editable?: boolean;
+}
+
 // Novas interfaces para Relatórios
 export interface KommoSalesReport {
   period: {
@@ -260,6 +268,17 @@ export class KommoAPI {
 
   async updateLead(id: number, lead: Partial<KommoLead>): Promise<KommoLead> {
     const response = await this.client.patch(`/api/v4/leads/${id}`, lead);
+    return response.data;
+  }
+
+  // Motivos da perda de leads (API 2026)
+  async getLossReasons(): Promise<{ _embedded: { loss_reasons: KommoLossReason[] } }> {
+    const response = await this.client.get('/api/v4/leads/loss_reasons');
+    return response.data;
+  }
+
+  async getLossReason(id: number): Promise<KommoLossReason> {
+    const response = await this.client.get(`/api/v4/leads/loss_reasons/${id}`);
     return response.data;
   }
 
@@ -477,6 +496,28 @@ export class KommoAPI {
     if (dateTo) params.date_to = dateTo;
     
     const response = await this.client.get(`/api/v4/leads/pipelines/${pipelineId}/analytics`, { params });
+    return response.data;
+  }
+
+  // ===== NOTAS: FIXAR / DESAFIXAR (API 2026) =====
+  async pinNote(entityType: 'leads' | 'contacts' | 'companies', noteId: number): Promise<any> {
+    const response = await this.client.post(`/api/v4/${entityType}/notes/${noteId}/pin`);
+    return response.data;
+  }
+
+  async unpinNote(entityType: 'leads' | 'contacts' | 'companies', noteId: number): Promise<any> {
+    const response = await this.client.post(`/api/v4/${entityType}/notes/${noteId}/unpin`);
+    return response.data;
+  }
+
+  // ===== SALESBOT (API v4 2026) =====
+  async runSalesbot(params: { entity_id: number; entity_type: string; [key: string]: any }): Promise<any> {
+    const response = await this.client.post('/api/v4/bots/run', params);
+    return response.data;
+  }
+
+  async stopSalesbot(botId: number): Promise<any> {
+    const response = await this.client.post(`/api/v4/bots/${botId}/stop`);
     return response.data;
   }
 }
