@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ES2020",
+    "target": "ES2020",
+    "moduleResolution": "bundler"
+  },
+  "ts-node": {
+    "esm": true,
+    "experimentalEsm": true,
+    "extensions": [".ts"],
+    "moduleTypes": {
+      "*": "esm"
+    }
+  }
+}
