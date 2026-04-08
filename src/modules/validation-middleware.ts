@@ -5,7 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema, ZodError } from 'zod';
-import { MCPErrorHandler } from './error-handler.js';
+import { MCPErrorHandler } from './error-handler';
 
 export class ValidationMiddleware {
   /**

@@ -4,8 +4,8 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import { MCPSessionSchema, MCPSession } from './validators.js';
-import { MCPErrorHandler } from './error-handler.js';
+import { MCPSessionSchema, MCPSession } from './validators';
+import { MCPErrorHandler } from './error-handler';
 
 export interface ToolDefinition {
   name: string;

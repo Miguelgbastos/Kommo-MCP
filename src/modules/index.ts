@@ -1,8 +1,8 @@
 // Export all modules
-export { CacheManager, cacheManager } from './cache-manager.js';
-export { MCPHandler, mcpHandler, type ToolDefinition, type ResourceDefinition, type Capability } from './mcp-handler.js';
-export { AIIntelligence, aiIntelligence } from './ai-intelligence.js';
-export { MCPErrorHandler, type MCPError } from './error-handler.js';
+export { CacheManager, cacheManager } from './cache-manager';
+export { MCPHandler, mcpHandler, type ToolDefinition, type ResourceDefinition, type Capability } from './mcp-handler';
+export { AIIntelligence, aiIntelligence } from './ai-intelligence';
+export { MCPErrorHandler, type MCPError } from './error-handler';
 export {
   MCPVersionSchema,
   ToolInputSchema,
@@ -23,4 +23,4 @@ export {
   type Contact,
   type Company,
   type MCPSession,
-} from './validators.js';
+} from './validators';
