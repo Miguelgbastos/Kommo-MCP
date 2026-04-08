@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/http-streamable.js",
-    "dev": "NODE_OPTIONS='--loader ts-node/esm --no-warnings=ExperimentalWarning' ts-node --project tsconfig.dev.json src/http-streamable.ts"
+    "dev": "tsx src/http-streamable.ts"
   },
   "keywords": [
     "mcp",
@@ -36,6 +36,7 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "ts-node": "^10.9.0",
+    "tsx": "^4.7.0",
     "typescript": "^5.0.0",
     "tsconfig-paths": "^4.2.0"
   }

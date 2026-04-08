@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import crypto from 'crypto';
-import { KommoAPI } from './kommo-api';
+import { KommoAPI } from './kommo-api.js';
 import dotenv from 'dotenv';
 
 // MCP: This server implements the Model Context Protocol manually (lifecycle, tools, resources, prompts).
