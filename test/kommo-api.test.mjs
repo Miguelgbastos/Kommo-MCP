@@ -84,6 +84,10 @@ test('sales reports are calculated from documented leads, pipelines and users en
     const url = new URL(request.url, baseUrl);
     paths.push(url.pathname);
     response.setHeader('Content-Type', 'application/json');
+    if (url.pathname === '/api/v4/account') {
+      response.end(JSON.stringify({ id: 1, name: 'Conta', timezone: 'UTC' }));
+      return;
+    }
     if (url.pathname === '/api/v4/leads') {
       response.end(
         JSON.stringify({
@@ -137,4 +141,58 @@ test('sales reports are calculated from documented leads, pipelines and users en
   assert.equal(report.revenue.total, 100);
   assert.equal(report.revenue.conversion_rate, 50);
   assert.ok(paths.every((path) => !path.includes('reports') && !path.includes('dashboard')));
+});
+
+test('sales reports use account timezone boundaries and reject impossible dates', async (context) => {
+  const baseUrl = await withServer(context, (request, response) => {
+    const url = new URL(request.url, baseUrl);
+    response.setHeader('Content-Type', 'application/json');
+    if (url.pathname === '/api/v4/account') {
+      response.end(JSON.stringify({ id: 1, name: 'Conta', timezone: 'America/Sao_Paulo' }));
+      return;
+    }
+    if (url.pathname === '/api/v4/leads') {
+      const lead = (id, createdAt) => ({
+        id,
+        name: `Lead ${id}`,
+        price: 100,
+        status_id: 142,
+        pipeline_id: 3,
+        responsible_user_id: 5,
+        created_at: createdAt,
+        updated_at: createdAt,
+        created_by: 5,
+        closed_at: createdAt,
+      });
+      response.end(
+        JSON.stringify({
+          _embedded: {
+            leads: [
+              lead(1, Date.parse('2026-01-01T02:59:59Z') / 1000),
+              lead(2, Date.parse('2026-01-01T03:00:00Z') / 1000),
+            ],
+          },
+        }),
+      );
+      return;
+    }
+    if (url.pathname === '/api/v4/leads/pipelines') {
+      response.end(JSON.stringify({ _embedded: { pipelines: [{ id: 3, name: 'Vendas' }] } }));
+      return;
+    }
+    if (url.pathname === '/api/v4/users') {
+      response.end(JSON.stringify({ _embedded: { users: [{ id: 5, name: 'Ana' }] } }));
+      return;
+    }
+    response.writeHead(404).end();
+  });
+  const api = new KommoAPI({ baseUrl, accessToken: 'test', maxRetries: 0 });
+
+  const report = await api.getSalesReport('2026-01-01', '2026-01-01');
+  assert.equal(report.leads.total, 1);
+  assert.equal(report.leads.won, 1);
+  await assert.rejects(
+    () => api.getSalesReport('2026-02-31', '2026-03-01'),
+    /datas reais no formato YYYY-MM-DD/,
+  );
 });

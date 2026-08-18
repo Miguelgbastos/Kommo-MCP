@@ -5,6 +5,98 @@ export interface KommoConfig {
   accessToken: string;
   timeoutMs?: number;
   maxRetries?: number;
+  timezone?: string;
+}
+
+interface CalendarDate {
+  year: number;
+  month: number;
+  day: number;
+}
+
+function assertTimezone(timezone: string): void {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: timezone }).format();
+  } catch {
+    throw new Error(`Fuso horário inválido: ${timezone}`);
+  }
+}
+
+function parseCalendarDate(value: string): CalendarDate {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) throw new Error('Período inválido. Use datas no formato YYYY-MM-DD.');
+  const [, yearText, monthText, dayText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const normalized = new Date(Date.UTC(year, month - 1, day));
+  if (
+    normalized.getUTCFullYear() !== year ||
+    normalized.getUTCMonth() !== month - 1 ||
+    normalized.getUTCDate() !== day
+  ) {
+    throw new Error('Período inválido. Use datas reais no formato YYYY-MM-DD.');
+  }
+  return { year, month, day };
+}
+
+function addCalendarDays(date: CalendarDate, days: number): CalendarDate {
+  const result = new Date(Date.UTC(date.year, date.month - 1, date.day + days));
+  return {
+    year: result.getUTCFullYear(),
+    month: result.getUTCMonth() + 1,
+    day: result.getUTCDate(),
+  };
+}
+
+function zonedStartOfDay(date: CalendarDate, timezone: string): number {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  });
+  const desired = Date.UTC(date.year, date.month - 1, date.day);
+  let instant = desired;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const parts = Object.fromEntries(
+      formatter
+        .formatToParts(instant)
+        .filter((part) => part.type !== 'literal')
+        .map((part) => [part.type, Number(part.value)]),
+    );
+    const represented = Date.UTC(
+      parts.year,
+      parts.month - 1,
+      parts.day,
+      parts.hour,
+      parts.minute,
+      parts.second,
+    );
+    const adjustment = desired - represented;
+    instant += adjustment;
+    if (adjustment === 0) break;
+  }
+  return Math.floor(instant / 1000);
+}
+
+function zonedCalendarDate(instant: Date, timezone: string): CalendarDate {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    })
+      .formatToParts(instant)
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, Number(part.value)]),
+  );
+  return { year: parts.year, month: parts.month, day: parts.day };
 }
 
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
@@ -219,8 +311,11 @@ export interface KommoDashboardData {
 
 export class KommoAPI {
   private client: AxiosInstance;
+  private configuredTimezone?: string;
 
   constructor(config: KommoConfig) {
+    if (config.timezone) assertTimezone(config.timezone);
+    this.configuredTimezone = config.timezone;
     const maxRetries = config.maxRetries ?? 3;
     this.client = axios.create({
       baseURL: config.baseUrl,
@@ -255,6 +350,12 @@ export class KommoAPI {
   async getAccount(): Promise<KommoAccount> {
     const response = await this.client.get('/api/v4/account');
     return response.data;
+  }
+
+  private getBusinessTimezone(account: KommoAccount): string {
+    const timezone = this.configuredTimezone ?? account.timezone ?? 'UTC';
+    assertTimezone(timezone);
+    return timezone;
   }
 
   // Leads methods
@@ -463,19 +564,26 @@ export class KommoAPI {
   // ===== RELATÓRIOS CALCULADOS COM ENDPOINTS PÚBLICOS =====
 
   async getSalesReport(dateFrom: string, dateTo: string): Promise<KommoSalesReport> {
-    const from = Math.floor(new Date(`${dateFrom}T00:00:00.000Z`).getTime() / 1000);
-    const to = Math.floor(new Date(`${dateTo}T23:59:59.999Z`).getTime() / 1000);
-    if (!Number.isFinite(from) || !Number.isFinite(to) || from > to) {
-      throw new Error('Período inválido. Use datas no formato YYYY-MM-DD.');
-    }
-    const [leads, pipelinesResponse, usersResponse] = await Promise.all([
+    const fromDate = parseCalendarDate(dateFrom);
+    const toDate = parseCalendarDate(dateTo);
+    const [account, leads, pipelinesResponse, usersResponse] = await Promise.all([
+      this.getAccount(),
       this.getAllLeads(),
       this.getPipelines(),
       this.getUsers(),
     ]);
-    const created = leads.filter((lead) => lead.created_at >= from && lead.created_at <= to);
+    const timezone = this.getBusinessTimezone(account);
+    const from = zonedStartOfDay(fromDate, timezone);
+    const toExclusive = zonedStartOfDay(addCalendarDays(toDate, 1), timezone);
+    if (from >= toExclusive) {
+      throw new Error('Período inválido. Use datas no formato YYYY-MM-DD.');
+    }
+    const created = leads.filter(
+      (lead) => lead.created_at >= from && lead.created_at < toExclusive,
+    );
     const closed = leads.filter(
-      (lead) => lead.closed_at !== undefined && lead.closed_at >= from && lead.closed_at <= to,
+      (lead) =>
+        lead.closed_at !== undefined && lead.closed_at >= from && lead.closed_at < toExclusive,
     );
     const won = closed.filter((lead) => lead.status_id === 142);
     const lost = closed.filter((lead) => lead.status_id === 143);
@@ -542,18 +650,25 @@ export class KommoAPI {
   }
 
   async getDashboardData(): Promise<KommoDashboardData> {
-    const [leads, tasks, pipelinesResponse] = await Promise.all([
+    const [account, leads, tasks, pipelinesResponse] = await Promise.all([
+      this.getAccount(),
       this.getAllLeads(),
       this.getAllTasks(),
       this.getPipelines(),
     ]);
     const now = new Date();
-    const todayStart = Math.floor(
-      new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() / 1000,
-    );
-    const monthStart = Math.floor(new Date(now.getFullYear(), now.getMonth(), 1).getTime() / 1000);
-    const lastMonthStart = Math.floor(
-      new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime() / 1000,
+    const timezone = this.getBusinessTimezone(account);
+    const today = zonedCalendarDate(now, timezone);
+    const todayStart = zonedStartOfDay(today, timezone);
+    const monthStart = zonedStartOfDay({ ...today, day: 1 }, timezone);
+    const previousMonthDate = new Date(Date.UTC(today.year, today.month - 2, 1));
+    const lastMonthStart = zonedStartOfDay(
+      {
+        year: previousMonthDate.getUTCFullYear(),
+        month: previousMonthDate.getUTCMonth() + 1,
+        day: 1,
+      },
+      timezone,
     );
     const won = leads.filter((lead) => lead.status_id === 142);
     const revenueForPeriod = (from: number, to: number) =>

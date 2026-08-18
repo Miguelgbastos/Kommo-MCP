@@ -93,6 +93,7 @@ O servidor sobe em `http://127.0.0.1:3001/mcp`.
 | `KOMMO_ACCESS_TOKEN`  | Token de acesso (integração privada ou OAuth2)               | —           |
 | `KOMMO_TIMEOUT_MS`    | Timeout de cada requisição ao Kommo                          | `15000`     |
 | `KOMMO_MAX_RETRIES`   | Retentativas de leituras em `429`/`5xx`                      | `3`         |
+| `KOMMO_TIMEZONE`      | Fuso IANA dos relatórios; por padrão usa o fuso da conta     | conta Kommo |
 | `PORT`                | Porta HTTP do servidor MCP                                   | `3001`      |
 | `MCP_HOST`            | Host de binding                                              | `127.0.0.1` |
 | `MCP_ALLOWED_ORIGINS` | Origens permitidas (separadas por vírgula)                   | —           |

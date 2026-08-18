@@ -35,6 +35,13 @@ export function validateRuntimeConfig(env: NodeJS.ProcessEnv = process.env): str
     }
   }
   if (!env.KOMMO_ACCESS_TOKEN) issues.push('KOMMO_ACCESS_TOKEN is required');
+  if (env.KOMMO_TIMEZONE) {
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone: env.KOMMO_TIMEZONE }).format();
+    } catch {
+      issues.push('KOMMO_TIMEZONE must be a valid IANA timezone');
+    }
+  }
   return issues;
 }
 
@@ -79,6 +86,7 @@ export function createApp(options: AppOptions = {}) {
       accessToken: process.env.KOMMO_ACCESS_TOKEN || '',
       timeoutMs: Number(process.env.KOMMO_TIMEOUT_MS) || 15_000,
       maxRetries: Number(process.env.KOMMO_MAX_RETRIES) || 3,
+      timezone: process.env.KOMMO_TIMEZONE,
     });
   const logger = {
     error: (message: string, error?: unknown) => {
