@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 Documentação do Kommo
+    url: https://pt-developers.kommo.com/docs/kommo-para-desenvolvedores
+    about: Consulte a documentação oficial da API do Kommo antes de abrir uma issue.
+  - name: 📖 Especificação MCP
+    url: https://modelcontextprotocol.io
+    about: Dúvidas sobre o protocolo MCP em si (não específicas ao Kommo).
+  - name: 🔒 Reportar vulnerabilidade
+    url: https://github.com/Miguelgbastos/Kommo-MCP/security/advisories/new
+    about: Reporte problemas de segurança de forma privada.

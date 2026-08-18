@@ -1,0 +1,87 @@
+name: 🐛 Bug report
+description: Reporte um comportamento inesperado no Kommo MCP Server
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por reportar um bug! Preencha as informações abaixo para
+        ajudar a reproduzir e corrigir o problema.
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Pré-requisitos
+      description: Confirme antes de abrir.
+      options:
+        - label: Eu procurei em [issues existentes](https://github.com/Miguelgbastos/Kommo-MCP/issues?q=is%3Aissue) e não encontrei este problema.
+          required: true
+        - label: Estou usando a versão mais recente do `main`.
+          required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Descrição do bug
+      description: Descreva o que aconteceu de forma clara e concisa.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Passos para reproduzir
+      description: Cole comandos, requisições `curl` ou configuração do cliente MCP.
+      placeholder: |
+        1. Iniciei o servidor com `npm start`
+        2. Chamei `curl ... /mcp` com o payload ...
+        3. Recebi o erro ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamento esperado
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / stack trace
+      description: Cole logs relevantes (remova dados sensíveis como tokens e IDs).
+      render: shell
+  - type: input
+    id: node-version
+    attributes:
+      label: Versão do Node.js
+      placeholder: "v20.11.0"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Sistema operacional
+      placeholder: "Ubuntu 22.04 / macOS 14 / Windows 11"
+    validations:
+      required: true
+  - type: input
+    id: project-version
+    attributes:
+      label: Versão do projeto / commit
+      placeholder: "v2.0.0 ou SHA do commit"
+    validations:
+      required: true
+  - type: dropdown
+    id: client
+    attributes:
+      label: Cliente MCP utilizado
+      options:
+        - Cursor
+        - Claude Desktop
+        - curl / script próprio
+        - Outro
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Informações adicionais
+      description: Qualquer contexto adicional, screenshots, etc.

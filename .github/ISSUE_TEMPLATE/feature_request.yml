@@ -1,0 +1,46 @@
+name: ✨ Feature request
+description: Sugira uma nova funcionalidade, tool, resource ou prompt
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado pela sugestão! Descreva o problema que a funcionalidade
+        resolveria e como você imagina a solução.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Qual problema esta funcionalidade resolve?
+      description: Descreva o cenário ou dor do usuário.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solução proposta
+      description: Como você imagina que deveria funcionar? Se envolver a API do Kommo, referencie o endpoint.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+  - type: dropdown
+    id: type
+    attributes:
+      label: Tipo de funcionalidade
+      options:
+        - Nova tool MCP
+        - Novo resource MCP
+        - Novo prompt MCP
+        - Melhoria na API do Kommo
+        - Documentação
+        - Infraestrutura / DevEx
+        - Outro
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Contexto adicional
