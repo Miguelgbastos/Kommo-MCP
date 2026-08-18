@@ -143,19 +143,13 @@ Adicione ao arquivo `~/.cursor/mcp.json` (ou nas configurações do projeto em
 
 ### Claude Desktop
 
-Adicione ao `claude_desktop_config.json`:
+Para uma implantação remota com HTTPS, abra **Settings → Connectors → Add
+connector** e informe a URL pública do endpoint, por exemplo
+`https://mcp.seudominio.com/mcp`.
 
-```json
-{
-  "mcpServers": {
-    "kommo": {
-      "url": "http://127.0.0.1:3001/mcp"
-    }
-  }
-}
-```
-
-Reinicie o cliente após alterar a configuração.
+O Claude Desktop não conecta servidores HTTP remotos configurados diretamente
+em `claude_desktop_config.json`. Esse arquivo é destinado a servidores locais
+executados como processos; o Kommo MCP oferece atualmente transporte HTTP.
 
 ## Endpoints
 
@@ -335,14 +329,14 @@ curl -X POST http://localhost:3001/mcp \
 
 ## Compatibilidade e suporte
 
-| Componente     | Suporte atual                          |
-| -------------- | -------------------------------------- |
-| Node.js        | 20 e 22                                |
-| Protocolo MCP  | `2025-06-18`                           |
-| Transporte     | Streamable HTTP, resposta JSON ou SSE  |
-| Cursor         | Configuração HTTP documentada          |
-| Claude Desktop | Configuração HTTP documentada          |
-| Instalação     | Git/Docker; ainda não publicado no npm |
+| Componente     | Suporte atual                                   |
+| -------------- | ----------------------------------------------- |
+| Node.js        | 20 e 22                                         |
+| Protocolo MCP  | revisões legadas de `2024-11-05` a `2025-11-25` |
+| Transporte     | Streamable HTTP, resposta JSON ou SSE           |
+| Cursor         | Configuração HTTP documentada                   |
+| Claude Desktop | Conector remoto via Settings → Connectors       |
+| Instalação     | Git/Docker; ainda não publicado no npm          |
 
 Suporte comunitário ocorre por Issues e Discussions, sem garantia de tempo de
 resposta. Veja as responsabilidades em [MAINTAINERS.md](MAINTAINERS.md).

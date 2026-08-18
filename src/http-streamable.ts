@@ -12,12 +12,19 @@ import { validateToolArguments } from './mcp/tool-validation.js';
 
 dotenv.config();
 
-const MCP_PROTOCOL_VERSION = '2025-06-18';
+const DEFAULT_MCP_PROTOCOL_VERSION = '2025-11-25';
+const SUPPORTED_MCP_PROTOCOL_VERSIONS = [
+  '2024-11-05',
+  '2025-03-26',
+  '2025-06-18',
+  '2025-11-25',
+] as const;
 const SESSION_TTL_MS = 60 * 60 * 1000;
 
 interface Session {
   initialized: boolean;
   lastSeenAt: number;
+  protocolVersion: string;
 }
 interface AppOptions {
   kommoAPI?: KommoAPI;
@@ -198,16 +205,26 @@ export function createApp(options: AppOptions = {}) {
     logger.debug('MCP request', { method, id });
 
     if (method === 'initialize') {
-      if (params?.protocolVersion !== MCP_PROTOCOL_VERSION) {
+      const requestedVersion = params?.protocolVersion;
+      if (
+        typeof requestedVersion !== 'string' ||
+        !SUPPORTED_MCP_PROTOCOL_VERSIONS.includes(
+          requestedVersion as (typeof SUPPORTED_MCP_PROTOCOL_VERSIONS)[number],
+        )
+      ) {
         res.status(400).json(
           jsonRpcError(id, -32602, 'Unsupported protocol version', {
-            supported: [MCP_PROTOCOL_VERSION],
+            supported: SUPPORTED_MCP_PROTOCOL_VERSIONS,
           }),
         );
         return;
       }
       const sessionId = crypto.randomUUID();
-      sessions.set(sessionId, { initialized: false, lastSeenAt: Date.now() });
+      sessions.set(sessionId, {
+        initialized: false,
+        lastSeenAt: Date.now(),
+        protocolVersion: requestedVersion,
+      });
       res.setHeader('MCP-Session-Id', sessionId);
       sendMcpResponse(
         res,
@@ -215,7 +232,7 @@ export function createApp(options: AppOptions = {}) {
           jsonrpc: '2.0',
           id,
           result: {
-            protocolVersion: MCP_PROTOCOL_VERSION,
+            protocolVersion: requestedVersion,
             capabilities: {
               tools: { listChanged: false },
               resources: { subscribe: false, listChanged: false },
@@ -233,16 +250,16 @@ export function createApp(options: AppOptions = {}) {
       return;
     }
 
-    if (req.header('MCP-Protocol-Version') !== MCP_PROTOCOL_VERSION) {
+    const session = requireSession(req, res);
+    if (!session) return;
+    if (req.header('MCP-Protocol-Version') !== session.protocolVersion) {
       res.status(400).json(
         jsonRpcError(id, -32600, 'Missing or unsupported MCP-Protocol-Version header', {
-          supported: [MCP_PROTOCOL_VERSION],
+          supported: SUPPORTED_MCP_PROTOCOL_VERSIONS,
         }),
       );
       return;
     }
-    const session = requireSession(req, res);
-    if (!session) return;
     if (method === 'notifications/initialized' && id === undefined) {
       session.initialized = true;
       res.status(202).end();
@@ -361,5 +378,7 @@ export function startServer(): void {
     console.log(`Kommo MCP Server listening on http://${host}:${port}`),
   );
 }
+
+export const MCP_PROTOCOL_VERSION = DEFAULT_MCP_PROTOCOL_VERSION;
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) startServer();
