@@ -2,19 +2,15 @@
 
 Este roadmap orienta contribuições; não representa compromisso de prazo.
 
-## Agora — estabilização da versão 2
+## Agora — validação da versão 3
 
-- Ampliar testes dos handlers com respostas simuladas da API Kommo.
 - Validar Cursor e Claude Desktop de ponta a ponta e registrar versões testadas.
 - Validar a revisão MCP `2026-07-28` com mais clientes da comunidade.
-- Publicar imagens Docker reproduzíveis para releases versionadas.
+- Publicar a release `v3.0.0` após validação em uma conta Kommo de teste.
 
 ## Próximo
 
 - Adicionar transporte `stdio` para clientes locais.
-- Implementar retries com backoff e tratamento consistente de `429`.
-- Separar tools somente leitura das que alteram dados.
-- Adicionar modo de confirmação para operações destrutivas.
 - Publicar o pacote no npm após validar nome, conteúdo e provenance.
 
 ## Futuro

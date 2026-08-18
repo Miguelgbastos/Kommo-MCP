@@ -102,6 +102,7 @@ src/
 ├── ask-kommo.ts          # Lógica conversacional do tool ask_kommo
 ├── http-streamable.ts    # Servidor MCP HTTP (Streamable HTTP)
 └── mcp/
+    ├── server.ts             # Registro oficial de tools/resources/prompts
     ├── types.ts             # Tipos internos do MCP
     ├── tool-definitions.ts  # Schemas (inputSchema) das tools
     ├── tool-handlers.ts     # Handlers de execução das tools
@@ -115,6 +116,8 @@ Ao adicionar uma nova tool:
 2. Implemente o handler em `src/mcp/tool-handlers.ts`.
 3. Se necessário, adicione o método na classe de `src/kommo-api.ts`.
 4. Documente a tool na tabela do `README.md`.
+5. Adicione um teste de handler e, se houver chamada HTTP nova, um teste de
+   contrato em `test/kommo-api.test.mjs`.
 
 ### Formatação e lint
 

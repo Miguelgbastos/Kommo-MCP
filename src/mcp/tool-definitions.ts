@@ -264,11 +264,12 @@ export const MCP_TOOLS: McpToolDefinition[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        bot_id: { type: 'number', description: 'ID do Salesbot' },
         entity_id: { type: 'number', description: 'ID da entidade (ex.: lead)' },
-        entity_type: { type: 'string', description: 'Tipo da entidade (ex.: leads)' },
+        entity_type: { type: 'string', enum: ['leads'], description: 'Tipo da entidade' },
       },
-      required: ['entity_id', 'entity_type'],
-      additionalProperties: true,
+      required: ['bot_id', 'entity_id', 'entity_type'],
+      additionalProperties: false,
     },
   },
   {
@@ -279,8 +280,10 @@ export const MCP_TOOLS: McpToolDefinition[] = [
       type: 'object',
       properties: {
         bot_id: { type: 'number', description: 'ID do bot Salesbot' },
+        entity_id: { type: 'number', description: 'ID do lead' },
+        entity_type: { type: 'string', enum: ['leads'], description: 'Tipo da entidade' },
       },
-      required: ['bot_id'],
+      required: ['bot_id', 'entity_id', 'entity_type'],
       additionalProperties: false,
     },
   },

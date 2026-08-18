@@ -190,20 +190,23 @@ export async function executeTool(
     }
 
     case 'run_salesbot': {
+      const botId = args?.bot_id as number;
       const entityId = args?.entity_id as number;
-      const entityType = args?.entity_type as string;
-      if (typeof entityId !== 'number' || !entityType) {
-        return errorResult('Requer entity_id (número) e entity_type (ex.: leads).');
+      const entityType = args?.entity_type;
+      if (typeof botId !== 'number' || typeof entityId !== 'number' || entityType !== 'leads') {
+        return errorResult('Requer bot_id, entity_id (números) e entity_type="leads".');
       }
-      return textResult(
-        await kommoAPI.runSalesbot({ entity_id: entityId, entity_type: entityType, ...args }),
-      );
+      return textResult(await kommoAPI.runSalesbot(botId, entityId, entityType));
     }
 
     case 'stop_salesbot': {
       const botId = args?.bot_id as number;
-      if (typeof botId !== 'number') return errorResult('Requer bot_id (número).');
-      return textResult(await kommoAPI.stopSalesbot(botId));
+      const entityId = args?.entity_id as number;
+      const entityType = args?.entity_type;
+      if (typeof botId !== 'number' || typeof entityId !== 'number' || entityType !== 'leads') {
+        return errorResult('Requer bot_id, entity_id (números) e entity_type="leads".');
+      }
+      return textResult(await kommoAPI.stopSalesbot(botId, entityId, entityType));
     }
 
     case 'ask_kommo':

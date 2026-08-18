@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { executeTool } from '../dist/mcp/tool-handlers.js';
+import { MCP_TOOLS } from '../dist/mcp/tool-definitions.js';
 
 function resultData(result) {
   assert.equal(result.isError, undefined);
@@ -94,4 +95,47 @@ test('Kommo API failures are propagated to the transport error boundary', async 
   };
 
   await assert.rejects(() => executeTool(api, 'create_lead', { name: 'Teste' }), apiError);
+});
+
+test('every advertised tool has an executable handler', async () => {
+  const validArguments = {
+    get_account: {},
+    get_leads: {},
+    get_lead: { id: 1 },
+    create_lead: { name: 'Teste' },
+    update_lead: { id: 1, name: 'Teste' },
+    move_lead: { lead_id: 1, status_id: 142 },
+    get_pipelines: {},
+    get_sales_report: { dateFrom: '2026-01-01', dateTo: '2026-01-31' },
+    get_dashboard: {},
+    get_contacts: {},
+    get_companies: {},
+    get_tasks: {},
+    create_task: { text: 'Teste', entity_id: 1, entity_type: 'leads', complete_till: 1 },
+    get_users: {},
+    get_loss_reasons: {},
+    get_loss_reason: { id: 1 },
+    get_notes: { entity_type: 'leads', entity_id: 1 },
+    add_note: { entity_type: 'leads', entity_id: 1, text: 'Teste' },
+    pin_note: { entity_type: 'leads', note_id: 1 },
+    unpin_note: { entity_type: 'leads', note_id: 1 },
+    run_salesbot: { bot_id: 1, entity_id: 1, entity_type: 'leads' },
+    stop_salesbot: { bot_id: 1, entity_id: 1, entity_type: 'leads' },
+    ask_kommo: { question: 'ajuda' },
+  };
+  const api = new Proxy(
+    {},
+    {
+      get(_target, property) {
+        if (property === 'getAllLeads') return async () => [];
+        return async () => ({});
+      },
+    },
+  );
+
+  for (const tool of MCP_TOOLS) {
+    assert.ok(validArguments[tool.name], `missing fixture for ${tool.name}`);
+    const result = await executeTool(api, tool.name, validArguments[tool.name]);
+    assert.equal(result.isError, undefined, `${tool.name} returned an error`);
+  }
 });

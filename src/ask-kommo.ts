@@ -310,17 +310,14 @@ export async function handleAskKommo(kommoAPI: KommoAPI, question: string): Prom
     questionLower.includes('ganho')
   ) {
     let salesLeads = leadsArray.filter((lead) => {
-      const status = lead.status?.toString().toLowerCase() || '';
-      const isClosedStatus =
-        status.includes('fechado') || status.includes('ganho') || status.includes('concluído');
-      return isClosedStatus || (lead.price || 0) > 0;
+      return lead.status_id === 142;
     });
 
     if (temporalFilter) {
       const { start, end } = getDateRange(temporalFilter);
       salesLeads = salesLeads.filter((lead) => {
-        const updatedAt = new Date(lead.updated_at * 1000);
-        return updatedAt >= start && updatedAt <= end;
+        const closedAt = new Date((lead.closed_at ?? 0) * 1000);
+        return closedAt >= start && closedAt <= end;
       });
     }
 

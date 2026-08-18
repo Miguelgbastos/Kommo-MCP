@@ -91,10 +91,13 @@ O servidor sobe em `http://127.0.0.1:3001/mcp`.
 | --------------------- | ------------------------------------------------------------ | ----------- |
 | `KOMMO_BASE_URL`      | URL da conta Kommo (`https://<subdominio>.kommo.com`)        | —           |
 | `KOMMO_ACCESS_TOKEN`  | Token de acesso (integração privada ou OAuth2)               | —           |
+| `KOMMO_TIMEOUT_MS`    | Timeout de cada requisição ao Kommo                          | `15000`     |
+| `KOMMO_MAX_RETRIES`   | Retentativas de leituras em `429`/`5xx`                      | `3`         |
 | `PORT`                | Porta HTTP do servidor MCP                                   | `3001`      |
 | `MCP_HOST`            | Host de binding                                              | `127.0.0.1` |
 | `MCP_ALLOWED_ORIGINS` | Origens permitidas (separadas por vírgula)                   | —           |
 | `MCP_AUTH_TOKEN`      | Protege `/mcp`; obrigatório quando `MCP_HOST` não é loopback | —           |
+| `MCP_CONFIRM_WRITES`  | Exige `confirm=true` nas tools que alteram dados             | `false`     |
 | `LOG_LEVEL`           | Nível de log                                                 | `info`      |
 
 ## Execução
@@ -123,6 +126,10 @@ docker run -d -p 3001:3001 \
 > Em produção, coloque o servidor atrás de um reverse proxy com TLS e defina
 > `MCP_AUTH_TOKEN` + `MCP_ALLOWED_ORIGINS`. O servidor se recusa a iniciar em
 > um endereço não local sem `MCP_AUTH_TOKEN`.
+
+> Ative `MCP_CONFIRM_WRITES=true` quando o cliente permitir confirmação
+> explícita. As tools de escrita anunciam `destructiveHint`; as consultas
+> anunciam `readOnlyHint` pelo protocolo MCP.
 
 ## Integração com clientes MCP
 
@@ -156,15 +163,17 @@ executados como processos; o Kommo MCP oferece atualmente transporte HTTP.
 - **MCP**: `POST http://localhost:3001/mcp` — negociação moderna via
   `server/discover`
 - **Health**: `GET http://localhost:3001/health`
+- **Readiness**: `GET http://localhost:3001/ready` — verifica se URL e token
+  obrigatórios foram configurados
 
 ## Ferramentas MCP
 
 ### Conta e dashboard
 
-| Tool            | Descrição                  |
-| --------------- | -------------------------- |
-| `get_account`   | Informações da conta Kommo |
-| `get_dashboard` | Dados do dashboard         |
+| Tool            | Descrição                                           |
+| --------------- | --------------------------------------------------- |
+| `get_account`   | Informações da conta Kommo                          |
+| `get_dashboard` | Dashboard calculado com endpoints públicos do Kommo |
 
 ### Leads
 
@@ -204,12 +213,12 @@ executados como processos; o Kommo MCP oferece atualmente transporte HTTP.
 
 ### Motivos de perda e Salesbot
 
-| Tool               | Descrição                        |
-| ------------------ | -------------------------------- |
-| `get_loss_reasons` | Listar motivos da perda de leads |
-| `get_loss_reason`  | Obter motivo de perda por ID     |
-| `run_salesbot`     | Iniciar Salesbot                 |
-| `stop_salesbot`    | Parar Salesbot                   |
+| Tool               | Descrição                                                     |
+| ------------------ | ------------------------------------------------------------- |
+| `get_loss_reasons` | Listar motivos da perda de leads                              |
+| `get_loss_reason`  | Obter motivo de perda por ID                                  |
+| `run_salesbot`     | Iniciar Salesbot (`bot_id`, `entity_id`, `entity_type=leads`) |
+| `stop_salesbot`    | Parar Salesbot (`bot_id`, `entity_id`, `entity_type=leads`)   |
 
 ### IA conversacional
 
@@ -285,6 +294,10 @@ Clientes limitados ao lifecycle MCP de 2024/2025 recebem o erro
   origem do cliente, quando definido.
 - **`403` no `/mcp`** — se `MCP_AUTH_TOKEN` estiver definido, é preciso
   enviar `Authorization: Bearer <token>` ou `X-API-Key: <token>`.
+- **`503` no `/ready`** — configure `KOMMO_BASE_URL` com HTTPS e defina
+  `KOMMO_ACCESS_TOKEN` antes de iniciar o serviço real.
+- **`429` do Kommo** — leituras são repetidas com backoff e `Retry-After`;
+  escritas não são repetidas automaticamente para evitar duplicidade.
 - **Docker `HEALTHCHECK` falha** — a imagem usa `node --eval` para o
   healthcheck, verifique se a porta interna corresponde a `PORT`.
 - **Erros de build TypeScript** — rode `npm run typecheck` para ver mensagens

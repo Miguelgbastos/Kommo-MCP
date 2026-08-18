@@ -14,12 +14,28 @@ import { createKommoMcpServer } from './mcp/server.js';
 dotenv.config();
 
 const MODERN_MCP_PROTOCOL_VERSION = '2026-07-28';
+const SERVER_VERSION = '3.0.0';
 
 interface AppOptions {
   kommoAPI?: KommoAPI;
   authToken?: string;
   allowedOrigins?: string[];
   logLevel?: string;
+}
+
+export function validateRuntimeConfig(env: NodeJS.ProcessEnv = process.env): string[] {
+  const issues: string[] = [];
+  if (!env.KOMMO_BASE_URL) issues.push('KOMMO_BASE_URL is required');
+  else {
+    try {
+      const url = new URL(env.KOMMO_BASE_URL);
+      if (url.protocol !== 'https:') issues.push('KOMMO_BASE_URL must use HTTPS');
+    } catch {
+      issues.push('KOMMO_BASE_URL must be a valid URL');
+    }
+  }
+  if (!env.KOMMO_ACCESS_TOKEN) issues.push('KOMMO_ACCESS_TOKEN is required');
+  return issues;
 }
 
 function isLoopbackOrigin(origin: string): boolean {
@@ -55,11 +71,14 @@ export function createApp(options: AppOptions = {}) {
       .filter(Boolean) ??
     [];
   const authToken = options.authToken ?? process.env.MCP_AUTH_TOKEN;
+  const configIssues = options.kommoAPI ? [] : validateRuntimeConfig();
   const kommoAPI =
     options.kommoAPI ??
     new KommoAPI({
       baseUrl: process.env.KOMMO_BASE_URL || 'https://api-g.kommo.com',
       accessToken: process.env.KOMMO_ACCESS_TOKEN || '',
+      timeoutMs: Number(process.env.KOMMO_TIMEOUT_MS) || 15_000,
+      maxRetries: Number(process.env.KOMMO_MAX_RETRIES) || 3,
     });
   const logger = {
     error: (message: string, error?: unknown) => {
@@ -105,13 +124,21 @@ export function createApp(options: AppOptions = {}) {
     res.json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      version: '2.0.0',
+      version: SERVER_VERSION,
       protocol_version: MODERN_MCP_PROTOCOL_VERSION,
       tools_count: MCP_TOOLS.length,
       resources_count: MCP_RESOURCES.length,
       prompts_count: MCP_PROMPTS.length,
       environment: process.env.NODE_ENV || 'development',
     });
+  });
+
+  app.get('/ready', (_req, res) => {
+    if (configIssues.length > 0) {
+      res.status(503).json({ status: 'not_ready', issues: configIssues });
+      return;
+    }
+    res.json({ status: 'ready', timestamp: new Date().toISOString() });
   });
 
   app.use('/mcp', (req, res, next) => {
@@ -141,6 +168,8 @@ export function startServer(): void {
   if (!['127.0.0.1', 'localhost', '::1'].includes(host) && !process.env.MCP_AUTH_TOKEN) {
     throw new Error('MCP_AUTH_TOKEN is required when MCP_HOST is not a loopback address');
   }
+  const configIssues = validateRuntimeConfig();
+  if (configIssues.length > 0) throw new Error(configIssues.join('; '));
   createApp().listen(port, host, () =>
     console.log(`Kommo MCP Server listening on http://${host}:${port}`),
   );
