@@ -1,7 +1,7 @@
 name: ✨ Feature request
 description: Sugira uma nova funcionalidade, tool, resource ou prompt
-title: "[Feature]: "
-labels: ["enhancement"]
+title: '[Feature]: '
+labels: ['enhancement']
 body:
   - type: markdown
     attributes:

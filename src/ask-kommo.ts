@@ -96,12 +96,39 @@ function getDateRange(period: string): { start: Date; end: Date } {
 function getCategoryFromQuestion(question: string): string | null {
   const questionLower = question.toLowerCase();
   const categories: Record<string, string[]> = {
-    tráfego: ['trafego', 'tráfego', 'traffic', 'ads', 'anúncios', 'facebook', 'google', 'instagram'],
+    tráfego: [
+      'trafego',
+      'tráfego',
+      'traffic',
+      'ads',
+      'anúncios',
+      'facebook',
+      'google',
+      'instagram',
+    ],
     design: ['design', 'logo', 'identidade', 'visual', 'criativo'],
     marketing: ['marketing', 'digital', 'social', 'redes sociais', 'conteúdo'],
     suporte: ['suporte', 'atendimento', 'help', 'ajuda', 'técnico'],
-    contatos: ['contato', 'contatos', 'telefone', 'telefones', 'nome', 'nomes', 'cliente', 'clientes'],
-    status: ['status', 'estado', 'situação', 'situacao', 'andamento', 'fechado', 'perdido', 'ganho'],
+    contatos: [
+      'contato',
+      'contatos',
+      'telefone',
+      'telefones',
+      'nome',
+      'nomes',
+      'cliente',
+      'clientes',
+    ],
+    status: [
+      'status',
+      'estado',
+      'situação',
+      'situacao',
+      'andamento',
+      'fechado',
+      'perdido',
+      'ganho',
+    ],
     valores: ['valor', 'valores', 'preço', 'preco', 'ticket', 'faturamento', 'receita'],
     origem: ['origem', 'fonte', 'canal', 'utm', 'facebook', 'google', 'instagram'],
     produtos: ['produto', 'produtos', 'item', 'items', 'serviço', 'servico', 't-shirt', 'camiseta'],
@@ -118,10 +145,30 @@ function getCategoryFromQuestion(question: string): string | null {
 function getMonthFromQuestion(question: string): number | null {
   const questionLower = question.toLowerCase();
   const months: Record<string, number> = {
-    janeiro: 0, jan: 0, fevereiro: 1, fev: 1, março: 2, mar: 2,
-    abril: 3, abr: 3, maio: 4, mai: 4, junho: 5, jun: 5,
-    julho: 6, jul: 6, agosto: 7, ago: 7, setembro: 8, set: 8,
-    outubro: 9, out: 9, novembro: 10, nov: 10, dezembro: 11, dez: 11,
+    janeiro: 0,
+    jan: 0,
+    fevereiro: 1,
+    fev: 1,
+    março: 2,
+    mar: 2,
+    abril: 3,
+    abr: 3,
+    maio: 4,
+    mai: 4,
+    junho: 5,
+    jun: 5,
+    julho: 6,
+    jul: 6,
+    agosto: 7,
+    ago: 7,
+    setembro: 8,
+    set: 8,
+    outubro: 9,
+    out: 9,
+    novembro: 10,
+    nov: 10,
+    dezembro: 11,
+    dez: 11,
   };
 
   for (const [monthName, monthNumber] of Object.entries(months)) {
@@ -150,13 +197,20 @@ function analyzeSemantics(question: string): SemanticAnalysis {
     confidence = 0.8;
   }
 
-  if (questionLower.includes('hoje')) entities.push({ type: 'date', value: 'today', confidence: 0.95 });
-  if (questionLower.includes('ontem')) entities.push({ type: 'date', value: 'yesterday', confidence: 0.95 });
-  if (questionLower.includes('semana')) entities.push({ type: 'date', value: 'week', confidence: 0.9 });
-  if (questionLower.includes('mês') || questionLower.includes('mes')) entities.push({ type: 'date', value: 'month', confidence: 0.9 });
-  if (questionLower.includes('ano')) entities.push({ type: 'date', value: 'year', confidence: 0.9 });
-  if (questionLower.includes('vendas')) entities.push({ type: 'metric', value: 'sales', confidence: 0.9 });
-  if (questionLower.includes('leads')) entities.push({ type: 'metric', value: 'leads', confidence: 0.9 });
+  if (questionLower.includes('hoje'))
+    entities.push({ type: 'date', value: 'today', confidence: 0.95 });
+  if (questionLower.includes('ontem'))
+    entities.push({ type: 'date', value: 'yesterday', confidence: 0.95 });
+  if (questionLower.includes('semana'))
+    entities.push({ type: 'date', value: 'week', confidence: 0.9 });
+  if (questionLower.includes('mês') || questionLower.includes('mes'))
+    entities.push({ type: 'date', value: 'month', confidence: 0.9 });
+  if (questionLower.includes('ano'))
+    entities.push({ type: 'date', value: 'year', confidence: 0.9 });
+  if (questionLower.includes('vendas'))
+    entities.push({ type: 'metric', value: 'sales', confidence: 0.9 });
+  if (questionLower.includes('leads'))
+    entities.push({ type: 'metric', value: 'leads', confidence: 0.9 });
 
   return { intent, entities, context: 'sales_analysis', confidence };
 }
@@ -164,9 +218,12 @@ function analyzeSemantics(question: string): SemanticAnalysis {
 function detectTemporalFilter(questionLower: string): string | null {
   if (questionLower.includes('hoje')) return 'today';
   if (questionLower.includes('ontem')) return 'yesterday';
-  if (questionLower.includes('semana passada') || questionLower.includes('semana anterior')) return 'last_week';
-  if (questionLower.includes('mês passado') || questionLower.includes('mes passado')) return 'last_month';
-  if (questionLower.includes('ano passado') || questionLower.includes('ano anterior')) return 'last_year';
+  if (questionLower.includes('semana passada') || questionLower.includes('semana anterior'))
+    return 'last_week';
+  if (questionLower.includes('mês passado') || questionLower.includes('mes passado'))
+    return 'last_month';
+  if (questionLower.includes('ano passado') || questionLower.includes('ano anterior'))
+    return 'last_year';
   if (questionLower.includes('esta semana')) return 'week';
   if (questionLower.includes('este mês') || questionLower.includes('este mes')) return 'month';
   if (questionLower.includes('este ano')) return 'year';
@@ -188,11 +245,25 @@ const periodNames: Record<string, string> = {
 };
 
 const monthNames = [
-  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+  'Janeiro',
+  'Fevereiro',
+  'Março',
+  'Abril',
+  'Maio',
+  'Junho',
+  'Julho',
+  'Agosto',
+  'Setembro',
+  'Outubro',
+  'Novembro',
+  'Dezembro',
 ];
 
-function filterLeadsByPeriod(leads: any[], temporalFilter: string | null, month: number | null): any[] {
+function filterLeadsByPeriod(
+  leads: any[],
+  temporalFilter: string | null,
+  month: number | null,
+): any[] {
   let filtered = leads;
   if (temporalFilter) {
     const { start, end } = getDateRange(temporalFilter);
@@ -232,10 +303,16 @@ export async function handleAskKommo(kommoAPI: KommoAPI, question: string): Prom
   const insights: string[] = [];
   const suggestions: string[] = [];
 
-  if (questionLower.includes('venda') || questionLower.includes('vendas') || questionLower.includes('fechado') || questionLower.includes('ganho')) {
+  if (
+    questionLower.includes('venda') ||
+    questionLower.includes('vendas') ||
+    questionLower.includes('fechado') ||
+    questionLower.includes('ganho')
+  ) {
     let salesLeads = leadsArray.filter((lead: any) => {
       const status = lead.status?.toString().toLowerCase() || '';
-      const isClosedStatus = status.includes('fechado') || status.includes('ganho') || status.includes('concluído');
+      const isClosedStatus =
+        status.includes('fechado') || status.includes('ganho') || status.includes('concluído');
       return isClosedStatus || (lead.price || 0) > 0;
     });
 
@@ -249,7 +326,7 @@ export async function handleAskKommo(kommoAPI: KommoAPI, question: string): Prom
 
     if (category) {
       salesLeads = salesLeads.filter((lead: any) =>
-        (lead.name || '').toLowerCase().includes(category)
+        (lead.name || '').toLowerCase().includes(category),
       );
     }
 
@@ -261,25 +338,38 @@ export async function handleAskKommo(kommoAPI: KommoAPI, question: string): Prom
     response += `📊 **Total de vendas:** ${totalSales}\n`;
     response += `💵 **Valor total:** R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`;
     response += `📈 **Ticket médio:** R$ ${averageTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`;
-    if (temporalFilter) response += `\n⏰ **Período:** ${periodNames[temporalFilter] || temporalFilter}\n`;
+    if (temporalFilter)
+      response += `\n⏰ **Período:** ${periodNames[temporalFilter] || temporalFilter}\n`;
     if (month !== null) response += `\n📅 **Mês:** ${monthNames[month]} de ${currentYear}\n`;
     if (category) response += `\n🏷️ **Categoria:** ${category}\n`;
-  } else if (category === 'contatos' || questionLower.includes('contato') || questionLower.includes('cliente')) {
+  } else if (
+    category === 'contatos' ||
+    questionLower.includes('contato') ||
+    questionLower.includes('cliente')
+  ) {
     const filteredLeads = filterLeadsByPeriod(leadsArray, temporalFilter, month);
     const contacts = await kommoAPI.getContacts({ limit: 250 });
     const contactsArray = contacts._embedded?.contacts || [];
     const leadsWithContactInfo = filteredLeads.filter((lead: any) =>
-      contactsArray.some((c: any) => c.name && lead.name && c.name.toLowerCase().includes(lead.name.toLowerCase().split(' ')[0]))
+      contactsArray.some(
+        (c: any) =>
+          c.name &&
+          lead.name &&
+          c.name.toLowerCase().includes(lead.name.toLowerCase().split(' ')[0]),
+      ),
     );
 
     response = `📞 **Análise de Contatos**\n\n`;
     response += `📊 **Total de leads:** ${filteredLeads.length}\n`;
     response += `👥 **Leads com contatos:** ${leadsWithContactInfo.length}\n`;
-    if (temporalFilter) response += `⏰ **Período:** ${periodNames[temporalFilter] || temporalFilter}\n`;
+    if (temporalFilter)
+      response += `⏰ **Período:** ${periodNames[temporalFilter] || temporalFilter}\n`;
   } else if (questionLower.includes('lead') || questionLower.includes('leads')) {
     let filteredLeads = filterLeadsByPeriod(leadsArray, temporalFilter, month);
     if (category) {
-      filteredLeads = filteredLeads.filter((lead: any) => (lead.name || '').toLowerCase().includes(category));
+      filteredLeads = filteredLeads.filter((lead: any) =>
+        (lead.name || '').toLowerCase().includes(category),
+      );
     }
 
     const totalLeads = filteredLeads.length;
@@ -288,9 +378,14 @@ export async function handleAskKommo(kommoAPI: KommoAPI, question: string): Prom
     response = `📋 **Análise de Leads**\n\n`;
     response += `📊 **Total de leads:** ${totalLeads}\n`;
     response += `💵 **Valor total:** R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n`;
-    if (temporalFilter) response += `\n⏰ **Período:** ${periodNames[temporalFilter] || temporalFilter}\n`;
+    if (temporalFilter)
+      response += `\n⏰ **Período:** ${periodNames[temporalFilter] || temporalFilter}\n`;
     if (category) response += `\n🏷️ **Categoria:** ${category}\n`;
-  } else if (questionLower.includes('ajuda') || questionLower.includes('help') || questionLower.includes('comandos')) {
+  } else if (
+    questionLower.includes('ajuda') ||
+    questionLower.includes('help') ||
+    questionLower.includes('comandos')
+  ) {
     response = `🤖 **Como posso ajudar você:**\n\n`;
     insights.push('📊 Pergunte sobre leads criados hoje, ontem ou este mês');
     insights.push('💰 Solicite valores totais, médias e faturamento');
@@ -313,11 +408,15 @@ export async function handleAskKommo(kommoAPI: KommoAPI, question: string): Prom
 
   if (insights.length > 0) {
     response += `\n\n🔍 **Insights:**\n`;
-    insights.forEach((insight) => { response += `• ${insight}\n`; });
+    insights.forEach((insight) => {
+      response += `• ${insight}\n`;
+    });
   }
   if (suggestions.length > 0) {
     response += `\n\n💡 **Sugestões:**\n`;
-    suggestions.forEach((suggestion) => { response += `• ${suggestion}\n`; });
+    suggestions.forEach((suggestion) => {
+      response += `• ${suggestion}\n`;
+    });
   }
 
   const cacheStatus = isCacheHit ? '✅ Cache ativo' : '🔄 Dados atualizados';
@@ -325,24 +424,30 @@ export async function handleAskKommo(kommoAPI: KommoAPI, question: string): Prom
   response += `\n\n⚡ **Performance:** ${cacheStatus} (${responseTime.toFixed(2)}s)`;
 
   return {
-    content: [{
-      type: 'text',
-      text: JSON.stringify({
-        agent_response: {
-          response,
-          metadata: {
-            total_leads_analyzed: leadsArray.length,
-            temporal_filter: temporalFilter,
-            category_filter: category,
-            month_filter: month,
-            cache_hit: isCacheHit,
-            response_time_seconds: responseTime,
-            ai_analysis: semanticAnalysis,
-            timestamp: new Date().toISOString(),
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify(
+          {
+            agent_response: {
+              response,
+              metadata: {
+                total_leads_analyzed: leadsArray.length,
+                temporal_filter: temporalFilter,
+                category_filter: category,
+                month_filter: month,
+                cache_hit: isCacheHit,
+                response_time_seconds: responseTime,
+                ai_analysis: semanticAnalysis,
+                timestamp: new Date().toISOString(),
+              },
+            },
+            user_message: question,
           },
-        },
-        user_message: question,
-      }, null, 2),
-    }],
+          null,
+          2,
+        ),
+      },
+    ],
   };
 }

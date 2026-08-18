@@ -31,6 +31,7 @@ Desktop, etc.).
 - [Exemplos de uso](#exemplos-de-uso)
 - [Troubleshooting](#troubleshooting)
 - [Documentação](#documentação)
+- [Compatibilidade e suporte](#compatibilidade-e-suporte)
 - [Contribuindo](#contribuindo)
 - [Segurança](#segurança)
 - [Licença](#licença)
@@ -48,8 +49,8 @@ Desktop, etc.).
 - **`ask_kommo`**: interface conversacional em linguagem natural
 - **Arquitetura modular**: código organizado em módulos (`kommo-api`, `mcp/`,
   `ask-kommo`)
-- **Segurança**: validação de Origin, bind em localhost por default,
-  autenticação opcional
+- **Segurança**: validação de Origin, sessões com expiração, validação dos
+  argumentos das tools e autenticação obrigatória fora de localhost
 
 ## Pré-requisitos
 
@@ -86,15 +87,15 @@ O servidor sobe em `http://127.0.0.1:3001/mcp`.
 
 ### Variáveis de ambiente
 
-| Variável                | Descrição                                                                | Default     |
-| ----------------------- | ------------------------------------------------------------------------ | ----------- |
-| `KOMMO_BASE_URL`        | URL da conta Kommo (`https://<subdominio>.kommo.com`)                    | —           |
-| `KOMMO_ACCESS_TOKEN`    | Token de acesso (integração privada ou OAuth2)                           | —           |
-| `PORT`                  | Porta HTTP do servidor MCP                                               | `3001`      |
-| `MCP_HOST`              | Host de binding                                                          | `127.0.0.1` |
-| `MCP_ALLOWED_ORIGINS`   | Origens permitidas (separadas por vírgula)                               | —           |
-| `MCP_AUTH_TOKEN`        | Se definido, exige `Authorization: Bearer` ou `X-API-Key` no `/mcp`      | —           |
-| `LOG_LEVEL`             | Nível de log                                                             | `info`      |
+| Variável              | Descrição                                                    | Default     |
+| --------------------- | ------------------------------------------------------------ | ----------- |
+| `KOMMO_BASE_URL`      | URL da conta Kommo (`https://<subdominio>.kommo.com`)        | —           |
+| `KOMMO_ACCESS_TOKEN`  | Token de acesso (integração privada ou OAuth2)               | —           |
+| `PORT`                | Porta HTTP do servidor MCP                                   | `3001`      |
+| `MCP_HOST`            | Host de binding                                              | `127.0.0.1` |
+| `MCP_ALLOWED_ORIGINS` | Origens permitidas (separadas por vírgula)                   | —           |
+| `MCP_AUTH_TOKEN`      | Protege `/mcp`; obrigatório quando `MCP_HOST` não é loopback | —           |
+| `LOG_LEVEL`           | Nível de log                                                 | `info`      |
 
 ## Execução
 
@@ -115,11 +116,13 @@ docker run -d -p 3001:3001 \
   -e KOMMO_BASE_URL=https://seu-dominio.kommo.com \
   -e KOMMO_ACCESS_TOKEN=seu-token \
   -e MCP_HOST=0.0.0.0 \
+  -e MCP_AUTH_TOKEN=gere-um-segredo-longo \
   --name kommo-mcp-server kommo-mcp-server
 ```
 
-> Em produção, considere colocar o servidor atrás de um reverse proxy com TLS
-> e definir `MCP_AUTH_TOKEN` + `MCP_ALLOWED_ORIGINS`.
+> Em produção, coloque o servidor atrás de um reverse proxy com TLS e defina
+> `MCP_AUTH_TOKEN` + `MCP_ALLOWED_ORIGINS`. O servidor se recusa a iniciar em
+> um endereço não local sem `MCP_AUTH_TOKEN`.
 
 ## Integração com clientes MCP
 
@@ -159,86 +162,87 @@ Reinicie o cliente após alterar a configuração.
 - **MCP**: `POST http://localhost:3001/mcp` — JSON-RPC (`initialize`,
   `tools/list`, `tools/call`, `resources/list`, `resources/read`,
   `prompts/list`, `prompts/get`)
+- **Encerrar sessão**: `DELETE http://localhost:3001/mcp`
 - **Health**: `GET http://localhost:3001/health`
 
 ## Ferramentas MCP
 
 ### Conta e dashboard
 
-| Tool            | Descrição                     |
-| --------------- | ----------------------------- |
-| `get_account`   | Informações da conta Kommo    |
-| `get_dashboard` | Dados do dashboard            |
+| Tool            | Descrição                  |
+| --------------- | -------------------------- |
+| `get_account`   | Informações da conta Kommo |
+| `get_dashboard` | Dados do dashboard         |
 
 ### Leads
 
-| Tool          | Descrição                                                    |
-| ------------- | ------------------------------------------------------------ |
-| `get_leads`   | Listar leads (`limit`, `page`, `query`)                      |
-| `get_lead`    | Obter lead por ID                                            |
-| `create_lead` | Criar lead (`name`, `price`, `status_id`, `pipeline_id`)     |
-| `update_lead` | Atualizar lead existente                                     |
-| `move_lead`   | Mover lead para outro status/pipeline                        |
+| Tool          | Descrição                                                |
+| ------------- | -------------------------------------------------------- |
+| `get_leads`   | Listar leads (`limit`, `page`, `query`)                  |
+| `get_lead`    | Obter lead por ID                                        |
+| `create_lead` | Criar lead (`name`, `price`, `status_id`, `pipeline_id`) |
+| `update_lead` | Atualizar lead existente                                 |
+| `move_lead`   | Mover lead para outro status/pipeline                    |
 
 ### Pipelines e relatórios
 
-| Tool               | Descrição                                                     |
-| ------------------ | ------------------------------------------------------------- |
-| `get_pipelines`    | Listar pipelines (com status opcional por `pipeline_id`)      |
-| `get_sales_report` | Relatório de vendas (`dateFrom`, `dateTo`)                    |
+| Tool               | Descrição                                                |
+| ------------------ | -------------------------------------------------------- |
+| `get_pipelines`    | Listar pipelines (com status opcional por `pipeline_id`) |
+| `get_sales_report` | Relatório de vendas (`dateFrom`, `dateTo`)               |
 
 ### Contatos, empresas e tarefas
 
-| Tool            | Descrição                             |
-| --------------- | ------------------------------------- |
-| `get_contacts`  | Listar contatos                       |
-| `get_companies` | Listar empresas                       |
-| `get_tasks`     | Listar tarefas                        |
-| `create_task`   | Criar tarefa vinculada a entidade     |
-| `get_users`     | Listar usuários da conta              |
+| Tool            | Descrição                         |
+| --------------- | --------------------------------- |
+| `get_contacts`  | Listar contatos                   |
+| `get_companies` | Listar empresas                   |
+| `get_tasks`     | Listar tarefas                    |
+| `create_task`   | Criar tarefa vinculada a entidade |
+| `get_users`     | Listar usuários da conta          |
 
 ### Notas
 
-| Tool          | Descrição                                     |
-| ------------- | --------------------------------------------- |
-| `get_notes`   | Listar notas de lead/contato/empresa          |
-| `add_note`    | Adicionar nota de texto                       |
-| `pin_note`    | Fixar nota                                    |
-| `unpin_note`  | Desafixar nota                                |
+| Tool         | Descrição                            |
+| ------------ | ------------------------------------ |
+| `get_notes`  | Listar notas de lead/contato/empresa |
+| `add_note`   | Adicionar nota de texto              |
+| `pin_note`   | Fixar nota                           |
+| `unpin_note` | Desafixar nota                       |
 
 ### Motivos de perda e Salesbot
 
-| Tool                | Descrição                          |
-| ------------------- | ---------------------------------- |
-| `get_loss_reasons`  | Listar motivos da perda de leads   |
-| `get_loss_reason`   | Obter motivo de perda por ID       |
-| `run_salesbot`      | Iniciar Salesbot                   |
-| `stop_salesbot`     | Parar Salesbot                     |
+| Tool               | Descrição                        |
+| ------------------ | -------------------------------- |
+| `get_loss_reasons` | Listar motivos da perda de leads |
+| `get_loss_reason`  | Obter motivo de perda por ID     |
+| `run_salesbot`     | Iniciar Salesbot                 |
+| `stop_salesbot`    | Parar Salesbot                   |
 
 ### IA conversacional
 
-| Tool         | Descrição                                          |
-| ------------ | -------------------------------------------------- |
-| `ask_kommo`  | Perguntas em linguagem natural sobre o CRM         |
+| Tool        | Descrição                                  |
+| ----------- | ------------------------------------------ |
+| `ask_kommo` | Perguntas em linguagem natural sobre o CRM |
 
 ## Resources
 
-| URI                     | Descrição                            |
-| ----------------------- | ------------------------------------ |
-| `kommo://reports/sales` | Relatório de vendas (último mês)     |
-| `kommo://pipelines`     | Lista de pipelines                   |
-| `kommo://loss_reasons`  | Motivos da perda de leads            |
-| `kommo://dashboard`     | Dados do dashboard                   |
-| `kommo://account`       | Informações da conta                 |
+| URI                     | Descrição                        |
+| ----------------------- | -------------------------------- |
+| `kommo://reports/sales` | Relatório de vendas (último mês) |
+| `kommo://pipelines`     | Lista de pipelines               |
+| `kommo://loss_reasons`  | Motivos da perda de leads        |
+| `kommo://dashboard`     | Dados do dashboard               |
+| `kommo://account`       | Informações da conta             |
 
 ## Prompts
 
-| Nome                    | Descrição                          |
-| ----------------------- | ---------------------------------- |
-| `analisar_vendas_mes`   | Analisar vendas do mês             |
-| `resumo_leads_status`   | Resumo de leads por status         |
-| `analise_pipeline`      | Analisar performance de pipeline   |
-| `motivos_perda`         | Analisar motivos de perda          |
+| Nome                  | Descrição                        |
+| --------------------- | -------------------------------- |
+| `analisar_vendas_mes` | Analisar vendas do mês           |
+| `resumo_leads_status` | Resumo de leads por status       |
+| `analise_pipeline`    | Analisar performance de pipeline |
+| `motivos_perda`       | Analisar motivos de perda        |
 
 ## Estrutura do projeto
 
@@ -262,15 +266,21 @@ src/
 ```bash
 curl -X POST http://localhost:3001/mcp \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"cli","version":"1.0.0"}}}'
 ```
+
+Guarde o header `MCP-Session-Id` retornado e envie a notificação
+`notifications/initialized` antes das demais chamadas.
 
 **2. Listar ferramentas:**
 
 ```bash
 curl -X POST http://localhost:3001/mcp \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
   -H "MCP-Protocol-Version: 2025-06-18" \
+  -H "MCP-Session-Id: <id-da-sessao>" \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
 ```
 
@@ -279,7 +289,9 @@ curl -X POST http://localhost:3001/mcp \
 ```bash
 curl -X POST http://localhost:3001/mcp \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
   -H "MCP-Protocol-Version: 2025-06-18" \
+  -H "MCP-Session-Id: <id-da-sessao>" \
   -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"move_lead","arguments":{"lead_id":12345,"status_id":142}}}'
 ```
 
@@ -288,7 +300,9 @@ curl -X POST http://localhost:3001/mcp \
 ```bash
 curl -X POST http://localhost:3001/mcp \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
   -H "MCP-Protocol-Version: 2025-06-18" \
+  -H "MCP-Session-Id: <id-da-sessao>" \
   -d '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"add_note","arguments":{"entity_type":"leads","entity_id":12345,"text":"Cliente interessado no plano premium"}}}'
 ```
 
@@ -316,6 +330,22 @@ curl -X POST http://localhost:3001/mcp \
 - [Kommo para desenvolvedores](https://pt-developers.kommo.com/docs/kommo-para-desenvolvedores)
 - [Changelog Kommo](https://pt-developers.kommo.com/changelog)
 - [CHANGELOG.md](CHANGELOG.md) deste projeto
+- [ROADMAP.md](ROADMAP.md) — prioridades e oportunidades de contribuição
+- [MAINTAINERS.md](MAINTAINERS.md) — manutenção, revisão e releases
+
+## Compatibilidade e suporte
+
+| Componente     | Suporte atual                          |
+| -------------- | -------------------------------------- |
+| Node.js        | 20 e 22                                |
+| Protocolo MCP  | `2025-06-18`                           |
+| Transporte     | Streamable HTTP, resposta JSON ou SSE  |
+| Cursor         | Configuração HTTP documentada          |
+| Claude Desktop | Configuração HTTP documentada          |
+| Instalação     | Git/Docker; ainda não publicado no npm |
+
+Suporte comunitário ocorre por Issues e Discussions, sem garantia de tempo de
+resposta. Veja as responsabilidades em [MAINTAINERS.md](MAINTAINERS.md).
 
 ## Contribuindo
 
@@ -328,8 +358,8 @@ Sugestões rápidas:
 - Abra uma [issue](https://github.com/Miguelgbastos/Kommo-MCP/issues) usando
   os templates.
 - Envie um PR pequeno e focado, com descrição do que muda e por quê.
-- Rode `npm run build`, `npm run typecheck` e `npm run lint` antes de
-  enviar.
+- Rode `npm run typecheck`, `npm run lint`, `npm test`,
+  `npm run format:check` e `npm run audit:prod` antes de enviar.
 
 ## Segurança
 

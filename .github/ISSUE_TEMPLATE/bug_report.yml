@@ -1,7 +1,7 @@
 name: 🐛 Bug report
 description: Reporte um comportamento inesperado no Kommo MCP Server
-title: "[Bug]: "
-labels: ["bug", "triage"]
+title: '[Bug]: '
+labels: ['bug', 'triage']
 body:
   - type: markdown
     attributes:
@@ -52,21 +52,21 @@ body:
     id: node-version
     attributes:
       label: Versão do Node.js
-      placeholder: "v20.11.0"
+      placeholder: 'v20.11.0'
     validations:
       required: true
   - type: input
     id: os
     attributes:
       label: Sistema operacional
-      placeholder: "Ubuntu 22.04 / macOS 14 / Windows 11"
+      placeholder: 'Ubuntu 22.04 / macOS 14 / Windows 11'
     validations:
       required: true
   - type: input
     id: project-version
     attributes:
       label: Versão do projeto / commit
-      placeholder: "v2.0.0 ou SHA do commit"
+      placeholder: 'v2.0.0 ou SHA do commit'
     validations:
       required: true
   - type: dropdown

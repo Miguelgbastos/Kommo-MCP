@@ -8,10 +8,12 @@
     "build": "tsc",
     "start": "node dist/http-streamable.js",
     "dev": "ts-node --esm src/http-streamable.ts",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "audit:prod": "npm audit --omit=dev --audit-level=high",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint \"src/**/*.ts\"",
-    "format": "prettier --write \"src/**/*.ts\" \"*.{md,json,yml}\"",
-    "format:check": "prettier --check \"src/**/*.ts\" \"*.{md,json,yml}\""
+    "lint": "eslint \"src/**/*.ts\" --max-warnings=0",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.mjs\" \".github/**/*.yml\" \"*.{md,json,yml}\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.mjs\" \".github/**/*.yml\" \"*.{md,json,yml}\""
   },
   "keywords": [
     "mcp",
@@ -48,20 +50,22 @@
     "env.example"
   ],
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.4.0",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.3",
-    "axios": "^1.6.0",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^5.1.0"
+    "ajv": "^8.17.1",
+    "axios": "^1.19.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
     "@types/node": "^20.0.0",
+    "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "eslint": "^8.57.0",
     "prettier": "^3.3.3",
+    "supertest": "^7.1.4",
     "ts-node": "^10.9.0",
     "typescript": "^5.0.0"
   }

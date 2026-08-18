@@ -74,6 +74,8 @@ npm run build      # compila TypeScript
 npm run dev        # executa via ts-node
 npm start          # executa o servidor compilado
 npm run typecheck  # apenas verificação de tipos
+npm test           # build e testes automatizados
+npm run audit:prod # vulnerabilidades de produção
 ```
 
 Servidor disponível em `http://127.0.0.1:3001/mcp`.
@@ -122,7 +124,8 @@ npm run format:check  # apenas verifica
 npm run lint          # ESLint
 ```
 
-O CI executa `typecheck`, `lint` e `format:check` em cada Pull Request.
+O CI executa `typecheck`, `lint`, `format:check`, testes, auditoria de
+dependências de produção e build Docker em cada Pull Request.
 
 ### Convenções de nomenclatura
 
@@ -147,9 +150,9 @@ Exemplo: `feat(tools): adiciona tool get_lead_by_email`.
 
 ## Enviando um Pull Request
 
-1. Garanta que `npm run build`, `npm run typecheck` e `npm run lint` passam
-   localmente.
-2. Atualize o `README.md` e o `CHANGELOG.md` (seção *Unreleased*) quando
+1. Garanta que `npm run typecheck`, `npm run lint`, `npm test`,
+   `npm run format:check` e `npm run audit:prod` passam localmente.
+2. Atualize o `README.md` e o `CHANGELOG.md` (seção _Unreleased_) quando
    aplicável.
 3. Descreva claramente **o que muda** e **por quê** no PR — utilize o
    template.

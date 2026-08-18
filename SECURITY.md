@@ -4,10 +4,10 @@
 
 Somente a versão mais recente do `main` recebe correções de segurança.
 
-| Versão | Suporte             |
-| ------ | ------------------- |
-| 2.x    | :white_check_mark:  |
-| < 2.0  | :x:                 |
+| Versão | Suporte            |
+| ------ | ------------------ |
+| 2.x    | :white_check_mark: |
+| < 2.0  | :x:                |
 
 ## Reportando uma vulnerabilidade
 
@@ -17,9 +17,8 @@ uma issue pública**. Em vez disso:
 1. Utilize o
    [GitHub Security Advisories](https://github.com/Miguelgbastos/Kommo-MCP/security/advisories/new)
    para reportar em modo privado; ou
-2. Envie uma mensagem direta para
-   [@Miguelgbastos](https://github.com/Miguelgbastos) no GitHub solicitando
-   um canal privado.
+2. Caso o formulário não esteja disponível, abra apenas uma solicitação sem
+   detalhes sensíveis no perfil do mantenedor para combinar um canal privado.
 
 Inclua no relatório:
 
@@ -28,11 +27,11 @@ Inclua no relatório:
 - Impacto potencial
 - Sua sugestão de correção, se houver
 
-## Prazo de resposta
+## Meta de resposta
 
-- Confirmação de recebimento: até 3 dias úteis
-- Diagnóstico inicial: até 7 dias úteis
-- Correção coordenada e divulgação pública após patch disponível
+O projeto buscará confirmar o recebimento em até 5 dias úteis. Esse prazo é
+uma meta, não uma garantia. A correção e a divulgação serão coordenadas de
+acordo com a gravidade e a disponibilidade dos mantenedores.
 
 ## Boas práticas para usuários
 

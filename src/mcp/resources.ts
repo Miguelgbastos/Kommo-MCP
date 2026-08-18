@@ -8,11 +8,36 @@ export interface McpResource {
 }
 
 export const MCP_RESOURCES: McpResource[] = [
-  { uri: 'kommo://reports/sales', name: 'Relatório de vendas', description: 'Resumo de vendas do Kommo CRM', mimeType: 'application/json' },
-  { uri: 'kommo://pipelines', name: 'Pipelines', description: 'Lista de pipelines de vendas', mimeType: 'application/json' },
-  { uri: 'kommo://loss_reasons', name: 'Motivos da perda de leads', description: 'Lista de motivos da perda de leads (API 2026)', mimeType: 'application/json' },
-  { uri: 'kommo://dashboard', name: 'Dashboard', description: 'Dados do dashboard do Kommo CRM', mimeType: 'application/json' },
-  { uri: 'kommo://account', name: 'Conta', description: 'Informações da conta Kommo', mimeType: 'application/json' },
+  {
+    uri: 'kommo://reports/sales',
+    name: 'Relatório de vendas',
+    description: 'Resumo de vendas do Kommo CRM',
+    mimeType: 'application/json',
+  },
+  {
+    uri: 'kommo://pipelines',
+    name: 'Pipelines',
+    description: 'Lista de pipelines de vendas',
+    mimeType: 'application/json',
+  },
+  {
+    uri: 'kommo://loss_reasons',
+    name: 'Motivos da perda de leads',
+    description: 'Lista de motivos da perda de leads (API 2026)',
+    mimeType: 'application/json',
+  },
+  {
+    uri: 'kommo://dashboard',
+    name: 'Dashboard',
+    description: 'Dados do dashboard do Kommo CRM',
+    mimeType: 'application/json',
+  },
+  {
+    uri: 'kommo://account',
+    name: 'Conta',
+    description: 'Informações da conta Kommo',
+    mimeType: 'application/json',
+  },
 ];
 
 const RESOURCE_URIS = new Set(MCP_RESOURCES.map((r) => r.uri));
@@ -29,7 +54,7 @@ export async function readResource(kommoAPI: KommoAPI, uri: string): Promise<str
       dateFrom.setMonth(dateFrom.getMonth() - 1);
       const salesData = await kommoAPI.getSalesReport(
         dateFrom.toISOString().slice(0, 10),
-        dateTo.toISOString().slice(0, 10)
+        dateTo.toISOString().slice(0, 10),
       );
       return JSON.stringify(salesData, null, 2);
     }
