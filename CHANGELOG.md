@@ -16,11 +16,10 @@ e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Workflow de CI (`.github/workflows/ci.yml`) rodando build, typecheck, lint e format check.
 - `.editorconfig`, configuração de ESLint e Prettier.
 - Arquivo `.dockerignore`.
-- Testes de integração do lifecycle, sessões, autenticação, Origin e schemas.
+- Testes de integração do lifecycle, autenticação, Origin e schemas.
 - Testes unitários dos handlers de leitura e escrita com cliente Kommo simulado.
 - Teste de conformidade ponta a ponta com o cliente MCP TypeScript oficial.
-- Validação JSON Schema dos argumentos de todas as tools.
-- Expiração e encerramento explícito de sessões MCP.
+- Validação JSON Schema dos argumentos de todas as tools pelo SDK oficial.
 - `ROADMAP.md` e `MAINTAINERS.md`.
 
 ### Modificado
@@ -35,14 +34,15 @@ e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Servidor exige autenticação quando exposto fora de interfaces loopback.
 - Tipos da API Kommo e da análise conversacional agora são explícitos; o lint
   volta a proibir `any` em todo código-fonte.
-- Negociação compatível com as revisões MCP legadas até `2025-11-25` e
-  instruções atuais para conectores remotos do Claude Desktop.
+- Instruções atuais para conectores remotos do Claude Desktop.
+- Servidor migrado integralmente para o SDK MCP oficial v2 e para a revisão
+  `2026-07-28`; clientes legados agora são rejeitados explicitamente.
 
 ### Removido
 
 - `GITHUB_UPDATE_INSTRUCTIONS.md` (documento interno que não deveria estar no repositório público).
 - Entrada `.dockerignore` do `.gitignore` (o `.dockerignore` agora é versionado).
-- Dependência antiga e não utilizada do SDK MCP.
+- Implementação MCP HTTP artesanal e sua validação AJV duplicada.
 
 ## [2.0.0]
 

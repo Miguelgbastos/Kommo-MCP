@@ -2,6 +2,11 @@
 
 Plano de execução para alinhar o servidor Kommo MCP à [documentação oficial do Model Context Protocol](https://modelcontextprotocol.io/docs/getting-started/intro). Cada fase pode ser feita em uma ou mais PRs.
 
+> **Status atual:** a camada MCP foi migrada para o SDK oficial v2 e serve a
+> exclusivamente a revisão moderna `2026-07-28`. Clientes legados são
+> rejeitados com erro explícito. As listas abaixo preservam o histórico do plano;
+> a implementação e os testes automatizados são a referência vigente.
+
 ---
 
 ## Visão geral
@@ -14,7 +19,7 @@ Plano de execução para alinhar o servidor Kommo MCP à [documentação oficial
 | 4    | Segurança               | Média      | —          |
 | 5    | Notificações            | Baixa      | Fase 1     |
 | 6    | Resources e Prompts     | Baixa      | Fase 1     |
-| 7    | SDK (opcional)           | Opcional   | Fases 1–4  |
+| 7    | SDK oficial (concluído) | Concluída  | Fases 1–4  |
 
 ---
 
@@ -137,17 +142,17 @@ Plano de execução para alinhar o servidor Kommo MCP à [documentação oficial
 
 ---
 
-## Fase 7 — Migração para o SDK oficial (opcional)
+## Fase 7 — Migração para o SDK oficial (concluída)
 
 **Objetivo:** Reduzir erros de protocolo e facilitar manutenção usando o SDK.
 
 **Ref.:** [SDKs](https://modelcontextprotocol.io/docs/sdk), [Build server - TypeScript](https://modelcontextprotocol.io/docs/develop/build-server)
 
-- [ ] **7.1** Avaliar SDK `@modelcontextprotocol/sdk` (versão e suporte a Streamable HTTP no Node/Express).
-- [ ] **7.2** Decidir estratégia: substituir toda a camada MCP pelo SDK ou apenas lifecycle + mensagens, mantendo Express para HTTP.
-- [ ] **7.3** Implementar servidor (ou adaptador) usando o SDK para: initialize, initialized, tools/list, tools/call, e opcionalmente resources/prompts/notifications.
-- [ ] **7.4** Manter a lógica de negócio Kommo (KommoAPI, ask_kommo, cache, etc.) em módulos separados, chamados pelo handler do SDK.
-- [ ] **7.5** Remover código duplicado de parsing/roteamento JSON-RPC e testes manuais; adicionar testes de integração com cliente MCP (ex.: MCP Inspector).
+- [x] **7.1** Adotar `@modelcontextprotocol/server` e o adaptador Node oficiais.
+- [x] **7.2** Manter Express para health, autenticação e Origin, delegando o protocolo ao SDK.
+- [x] **7.3** Registrar tools, resources e prompts para a revisão moderna `2026-07-28`.
+- [x] **7.4** Manter a lógica de negócio Kommo separada dos handlers de protocolo.
+- [x] **7.5** Remover parsing JSON-RPC e validação AJV duplicados; testar a revisão moderna e a rejeição de clientes legados.
 
 **Entregável:** Servidor baseado no SDK oficial, com comportamento igual ou melhor ao atual.
 

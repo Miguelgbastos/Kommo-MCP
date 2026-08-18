@@ -1,7 +1,6 @@
-export interface McpToolResult {
-  content: Array<{ type: 'text'; text: string }>;
-  isError?: boolean;
-}
+import type { CallToolResult } from '@modelcontextprotocol/server';
+
+export type McpToolResult = CallToolResult;
 
 export interface McpToolDefinition {
   name: string;

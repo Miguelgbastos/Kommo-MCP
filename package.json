@@ -5,7 +5,8 @@
   "main": "dist/http-streamable.js",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "clean": "node --eval \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "npm run clean && tsc",
     "start": "node dist/http-streamable.js",
     "dev": "ts-node --esm src/http-streamable.ts",
     "test": "npm run build && node --test test/*.test.mjs",
@@ -50,11 +51,13 @@
     "env.example"
   ],
   "dependencies": {
-    "ajv": "^8.17.1",
+    "@modelcontextprotocol/node": "^2.0.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "axios": "^1.19.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "zod": "^4.2.0"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "^2.0.0",
