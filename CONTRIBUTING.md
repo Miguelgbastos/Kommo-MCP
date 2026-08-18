@@ -1,200 +1,168 @@
 # Contribuindo para o Kommo MCP Server
 
-Obrigado por considerar contribuir para o Kommo MCP Server! Este documento fornece diretrizes para contribuições.
+Obrigado por considerar contribuir! Este guia explica como propor mudanças de
+forma eficiente e alinhada às convenções do projeto.
 
-## 🚀 Como Contribuir
+Ao participar, você concorda em seguir o nosso
+[Código de Conduta](CODE_OF_CONDUCT.md).
 
-### 1. Fork e Clone
-1. Faça um fork do repositório
-2. Clone seu fork localmente:
-   ```bash
-   git clone https://github.com/SEU_USUARIO/kommo-mcp.git
-   cd kommo-mcp
-   ```
+## Sumário
 
-### 2. Configuração do Ambiente
-1. Instale as dependências:
-   ```bash
-   npm install
-   ```
+- [Como posso ajudar?](#como-posso-ajudar)
+- [Reportando bugs](#reportando-bugs)
+- [Sugerindo funcionalidades](#sugerindo-funcionalidades)
+- [Fluxo de desenvolvimento](#fluxo-de-desenvolvimento)
+- [Padrões de código](#padrões-de-código)
+- [Mensagens de commit](#mensagens-de-commit)
+- [Enviando um Pull Request](#enviando-um-pull-request)
+- [Reportando vulnerabilidades](#reportando-vulnerabilidades)
 
-2. Configure as variáveis de ambiente:
-   ```bash
-   cp env.example .env
-   # Edite o arquivo .env com suas credenciais do Kommo
-   ```
+## Como posso ajudar?
 
-3. Compile o projeto:
-   ```bash
-   npm run build
-   ```
+Existem várias formas de contribuir, mesmo sem escrever código:
 
-### 3. Desenvolvimento
-1. Crie uma branch para sua feature:
-   ```bash
-   git checkout -b feature/nova-funcionalidade
-   ```
+- Reportar bugs e propor melhorias em [Issues](https://github.com/Miguelgbastos/Kommo-MCP/issues).
+- Melhorar a documentação (README, `docs/`, exemplos de uso).
+- Testar em novos clientes MCP (Cursor, Claude, etc.) e relatar problemas.
+- Traduzir a documentação.
+- Adicionar novas tools/resources/prompts que exponham funcionalidades da API
+  do Kommo ainda não cobertas.
 
-2. Faça suas alterações seguindo as diretrizes de código
+## Reportando bugs
 
-3. Teste suas alterações:
-   ```bash
-   npm run build
-   npm run dev
-   ```
+Antes de abrir uma issue, verifique se já não existe uma
+[issue aberta](https://github.com/Miguelgbastos/Kommo-MCP/issues) sobre o mesmo
+assunto. Use o template de bug e inclua sempre:
 
-### 4. Commit e Push
-1. Adicione suas alterações:
-   ```bash
-   git add .
-   ```
+- Versão do Node.js e do sistema operacional
+- Passos para reproduzir
+- Comportamento esperado vs. observado
+- Logs relevantes (com dados sensíveis removidos)
 
-2. Faça o commit com uma mensagem descritiva:
-   ```bash
-   git commit -m "feat: adiciona nova funcionalidade X"
-   ```
+## Sugerindo funcionalidades
 
-3. Push para sua branch:
-   ```bash
-   git push origin feature/nova-funcionalidade
-   ```
+Use o template de feature request para descrever:
 
-### 5. Pull Request
-1. Crie um Pull Request no GitHub
-2. Descreva suas alterações detalhadamente
-3. Aguarde a revisão
+- O problema que a funcionalidade resolveria
+- A solução proposta e alternativas consideradas
+- Se ela requer novas chamadas à API do Kommo, cite o endpoint
+  correspondente na [documentação oficial](https://pt-developers.kommo.com/docs/kommo-para-desenvolvedores).
 
-## 📋 Diretrizes de Código
+## Fluxo de desenvolvimento
+
+### 1. Fork e clone
+
+```bash
+git clone https://github.com/SEU_USUARIO/Kommo-MCP.git
+cd Kommo-MCP
+```
+
+### 2. Instalação
+
+Requer **Node.js 20+**.
+
+```bash
+npm install
+cp env.example .env
+# edite .env com KOMMO_BASE_URL e KOMMO_ACCESS_TOKEN
+```
+
+### 3. Build e execução em desenvolvimento
+
+```bash
+npm run build      # compila TypeScript
+npm run dev        # executa via ts-node
+npm start          # executa o servidor compilado
+npm run typecheck  # apenas verificação de tipos
+```
+
+Servidor disponível em `http://127.0.0.1:3001/mcp`.
+
+### 4. Criar uma branch
+
+```bash
+git checkout -b feat/nome-curto-descritivo
+```
+
+## Padrões de código
 
 ### TypeScript
-- Use TypeScript para todo o código
-- Defina interfaces para todos os tipos
-- Use tipos estritos e evite `any`
 
-### Estrutura de Arquivos
+- Todo código novo deve ser em TypeScript com `strict: true`.
+- Evite `any` — prefira tipos explícitos ou `unknown` com type guards.
+- Defina interfaces para respostas da API do Kommo em `src/kommo-api.ts`.
+
+### Estrutura do projeto
+
 ```
 src/
-├── index.ts          # Servidor MCP principal
-├── index-http.ts     # Servidor MCP HTTP
-└── kommo-api.ts      # Classe de integração com API
+├── kommo-api.ts          # Cliente HTTP da API Kommo
+├── ask-kommo.ts          # Lógica conversacional do tool ask_kommo
+├── http-streamable.ts    # Servidor MCP HTTP (Streamable HTTP)
+└── mcp/
+    ├── types.ts             # Tipos internos do MCP
+    ├── tool-definitions.ts  # Schemas (inputSchema) das tools
+    ├── tool-handlers.ts     # Handlers de execução das tools
+    ├── resources.ts         # Definição de resources MCP
+    └── prompts.ts           # Definição de prompts MCP
 ```
 
-### Convenções de Nomenclatura
-- **Funções**: camelCase
-- **Interfaces**: PascalCase com prefixo `Kommo`
-- **Constantes**: UPPER_SNAKE_CASE
-- **Arquivos**: kebab-case
+Ao adicionar uma nova tool:
 
-### Mensagens de Commit
-Use o padrão Conventional Commits:
+1. Adicione o schema em `src/mcp/tool-definitions.ts`.
+2. Implemente o handler em `src/mcp/tool-handlers.ts`.
+3. Se necessário, adicione o método na classe de `src/kommo-api.ts`.
+4. Documente a tool na tabela do `README.md`.
+
+### Formatação e lint
+
+```bash
+npm run format        # aplica Prettier
+npm run format:check  # apenas verifica
+npm run lint          # ESLint
+```
+
+O CI executa `typecheck`, `lint` e `format:check` em cada Pull Request.
+
+### Convenções de nomenclatura
+
+- Funções e variáveis: `camelCase`
+- Interfaces e tipos: `PascalCase`
+- Constantes de módulo: `UPPER_SNAKE_CASE`
+- Arquivos: `kebab-case.ts`
+
+## Mensagens de commit
+
+Adotamos [Conventional Commits](https://www.conventionalcommits.org/pt-br/):
+
 - `feat:` nova funcionalidade
 - `fix:` correção de bug
-- `docs:` documentação
-- `style:` formatação
-- `refactor:` refatoração
-- `test:` testes
-- `chore:` tarefas de manutenção
+- `docs:` alteração apenas de documentação
+- `refactor:` refatoração sem mudança de comportamento
+- `chore:` tarefas de manutenção (build, deps)
+- `ci:` alterações no pipeline
+- `test:` inclusão/ajuste de testes
 
-## 🧪 Testes
+Exemplo: `feat(tools): adiciona tool get_lead_by_email`.
 
-### Executar Testes
-```bash
-npm test
-```
+## Enviando um Pull Request
 
-### Cobertura de Testes
-```bash
-npm run test:coverage
-```
+1. Garanta que `npm run build`, `npm run typecheck` e `npm run lint` passam
+   localmente.
+2. Atualize o `README.md` e o `CHANGELOG.md` (seção *Unreleased*) quando
+   aplicável.
+3. Descreva claramente **o que muda** e **por quê** no PR — utilize o
+   template.
+4. Faça referência à issue relacionada (ex.: `Closes #12`).
+5. Um mantenedor revisará o PR e pode solicitar ajustes.
 
-## 📚 Documentação
+PRs pequenos e focados são revisados mais rápido.
 
-### Atualizar README
-- Documente novas funcionalidades
-- Atualize exemplos de uso
-- Mantenha a estrutura organizada
+## Reportando vulnerabilidades
 
-### Comentários de Código
-- Comente funções complexas
-- Documente parâmetros importantes
-- Use JSDoc para APIs públicas
+**Não** abra issues públicas para vulnerabilidades de segurança. Siga o
+processo descrito em [SECURITY.md](SECURITY.md).
 
-## 🔧 Configuração do Ambiente de Desenvolvimento
+---
 
-### VS Code Extensions Recomendadas
-- TypeScript and JavaScript Language Features
-- ESLint
-- Prettier
-- Docker
-
-### Configurações Recomendadas
-```json
-{
-  "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
-  }
-}
-```
-
-## 🐛 Reportando Bugs
-
-### Template de Bug Report
-```markdown
-**Descrição do Bug**
-Descrição clara e concisa do bug.
-
-**Passos para Reproduzir**
-1. Vá para '...'
-2. Clique em '...'
-3. Role até '...'
-4. Veja o erro
-
-**Comportamento Esperado**
-O que deveria acontecer.
-
-**Comportamento Atual**
-O que está acontecendo.
-
-**Screenshots**
-Se aplicável, adicione screenshots.
-
-**Ambiente**
-- OS: [ex: Ubuntu 20.04]
-- Node.js: [ex: 18.0.0]
-- Versão do projeto: [ex: 1.0.0]
-
-**Informações Adicionais**
-Qualquer outra informação relevante.
-```
-
-## 💡 Sugerindo Funcionalidades
-
-### Template de Feature Request
-```markdown
-**Descrição da Funcionalidade**
-Descrição clara da funcionalidade desejada.
-
-**Problema que Resolve**
-Qual problema esta funcionalidade resolveria.
-
-**Solução Proposta**
-Como você imagina que deveria funcionar.
-
-**Alternativas Consideradas**
-Outras soluções que você considerou.
-
-**Contexto Adicional**
-Qualquer contexto adicional.
-```
-
-## 📞 Suporte
-
-Se você tiver dúvidas ou precisar de ajuda:
-- Abra uma issue no GitHub
-- Consulte a documentação
-- Verifique os exemplos no README
-
-## 🎉 Agradecimentos
-
-Obrigado por contribuir para o Kommo MCP Server! Suas contribuições ajudam a tornar este projeto melhor para todos.
+Obrigado por ajudar a tornar o Kommo MCP Server melhor!
