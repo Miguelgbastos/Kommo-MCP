@@ -1,22 +1,52 @@
 {
   "name": "kommo-mcp-server",
   "version": "2.0.0",
-  "description": "MCP Server for Kommo CRM integration",
+  "description": "MCP (Model Context Protocol) Server for Kommo CRM integration — expõe tools, resources e prompts para clientes MCP como Cursor e Claude.",
   "main": "dist/http-streamable.js",
   "type": "module",
   "scripts": {
     "build": "tsc",
     "start": "node dist/http-streamable.js",
-    "dev": "ts-node --esm src/http-streamable.ts"
+    "dev": "ts-node --esm src/http-streamable.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"*.{md,json,yml}\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"*.{md,json,yml}\""
   },
   "keywords": [
     "mcp",
+    "model-context-protocol",
     "kommo",
+    "kommo-crm",
     "crm",
-    "api"
+    "api",
+    "cursor",
+    "claude",
+    "llm",
+    "ai"
   ],
-  "author": "MCP Server",
+  "author": {
+    "name": "Miguel G. Bastos",
+    "url": "https://github.com/Miguelgbastos"
+  },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miguelgbastos/Kommo-MCP.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Miguelgbastos/Kommo-MCP/issues"
+  },
+  "homepage": "https://github.com/Miguelgbastos/Kommo-MCP#readme",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "env.example"
+  ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.4.0",
     "@types/cors": "^2.8.19",
@@ -28,6 +58,10 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.3",
     "ts-node": "^10.9.0",
     "typescript": "^5.0.0"
   }
