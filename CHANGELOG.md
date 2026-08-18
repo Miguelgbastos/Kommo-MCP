@@ -17,6 +17,7 @@ e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - `.editorconfig`, configuração de ESLint e Prettier.
 - Arquivo `.dockerignore`.
 - Testes de integração do lifecycle, sessões, autenticação, Origin e schemas.
+- Testes unitários dos handlers de leitura e escrita com cliente Kommo simulado.
 - Validação JSON Schema dos argumentos de todas as tools.
 - Expiração e encerramento explícito de sessões MCP.
 - `ROADMAP.md` e `MAINTAINERS.md`.
