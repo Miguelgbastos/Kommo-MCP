@@ -38,8 +38,8 @@ Desktop, etc.).
 
 ## Funcionalidades
 
-- **MCP moderno e compatível**: revisão `2026-07-28` pelo SDK oficial, com
-  fallback stateless para clientes legados de 2024/2025
+- **MCP moderno**: revisão `2026-07-28` pelo SDK oficial, sem camada de
+  compatibilidade legada
 - **23 tools**: leads, contatos, empresas, tarefas, pipelines, notas,
   relatórios, dashboard, Salesbot, motivos de perda
 - **5 resources**: relatório de vendas, pipelines, motivos de perda,
@@ -154,7 +154,7 @@ executados como processos; o Kommo MCP oferece atualmente transporte HTTP.
 ## Endpoints
 
 - **MCP**: `POST http://localhost:3001/mcp` — negociação moderna via
-  `server/discover` ou lifecycle legado, conforme o cliente
+  `server/discover`
 - **Health**: `GET http://localhost:3001/health`
 
 ## Ferramentas MCP
@@ -254,49 +254,26 @@ src/
 
 ## Exemplos de uso
 
-Os clientes MCP fazem a negociação automaticamente. Para diagnóstico manual,
-os exemplos abaixo usam o fallback legado stateless; não há ID de sessão para
-guardar. Para integrações novas, prefira o SDK oficial com negociação da revisão
-`2026-07-28`.
+Clientes compatíveis negociam a revisão automaticamente por `server/discover`.
+Ao usar o cliente TypeScript oficial, fixe a revisão para evitar fallback
+silencioso para servidores antigos:
 
-**1. Inicializar o cliente legado:**
+```ts
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 
-```bash
-curl -X POST http://localhost:3001/mcp \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"cli","version":"1.0.0"}}}'
+const client = new Client(
+  { name: 'minha-integracao', version: '1.0.0' },
+  { versionNegotiation: { mode: { pin: '2026-07-28' } } },
+);
+
+const transport = new StreamableHTTPClientTransport(new URL('http://127.0.0.1:3001/mcp'));
+
+await client.connect(transport);
+const { tools } = await client.listTools();
 ```
 
-**2. Listar ferramentas:**
-
-```bash
-curl -X POST http://localhost:3001/mcp \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -H "MCP-Protocol-Version: 2025-11-25" \
-  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
-```
-
-**3. Mover lead para outro status:**
-
-```bash
-curl -X POST http://localhost:3001/mcp \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -H "MCP-Protocol-Version: 2025-11-25" \
-  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"move_lead","arguments":{"lead_id":12345,"status_id":142}}}'
-```
-
-**4. Adicionar nota a um lead:**
-
-```bash
-curl -X POST http://localhost:3001/mcp \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -H "MCP-Protocol-Version: 2025-11-25" \
-  -d '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"add_note","arguments":{"entity_type":"leads","entity_id":12345,"text":"Cliente interessado no plano premium"}}}'
-```
+Clientes limitados ao lifecycle MCP de 2024/2025 recebem o erro
+`-32022 Unsupported protocol version` e precisam ser atualizados.
 
 ## Troubleshooting
 
@@ -327,14 +304,14 @@ curl -X POST http://localhost:3001/mcp \
 
 ## Compatibilidade e suporte
 
-| Componente     | Suporte atual                                   |
-| -------------- | ----------------------------------------------- |
-| Node.js        | 20 e 22                                         |
-| Protocolo MCP  | `2026-07-28` + fallback legado até `2025-11-25` |
-| Transporte     | Streamable HTTP oficial; respostas JSON ou SSE  |
-| Cursor         | Configuração HTTP documentada                   |
-| Claude Desktop | Conector remoto via Settings → Connectors       |
-| Instalação     | Git/Docker; ainda não publicado no npm          |
+| Componente     | Suporte atual                                  |
+| -------------- | ---------------------------------------------- |
+| Node.js        | 20 e 22                                        |
+| Protocolo MCP  | somente `2026-07-28`                           |
+| Transporte     | Streamable HTTP oficial; respostas JSON ou SSE |
+| Cursor         | Configuração HTTP documentada                  |
+| Claude Desktop | Conector remoto via Settings → Connectors      |
+| Instalação     | Git/Docker; ainda não publicado no npm         |
 
 Suporte comunitário ocorre por Issues e Discussions, sem garantia de tempo de
 resposta. Veja as responsabilidades em [MAINTAINERS.md](MAINTAINERS.md).

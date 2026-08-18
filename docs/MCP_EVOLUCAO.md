@@ -3,8 +3,8 @@
 Plano de execução para alinhar o servidor Kommo MCP à [documentação oficial do Model Context Protocol](https://modelcontextprotocol.io/docs/getting-started/intro). Cada fase pode ser feita em uma ou mais PRs.
 
 > **Status atual:** a camada MCP foi migrada para o SDK oficial v2 e serve a
-> revisão moderna `2026-07-28`, mantendo fallback stateless para clientes
-> legados até `2025-11-25`. As listas abaixo preservam o histórico do plano;
+> exclusivamente a revisão moderna `2026-07-28`. Clientes legados são
+> rejeitados com erro explícito. As listas abaixo preservam o histórico do plano;
 > a implementação e os testes automatizados são a referência vigente.
 
 ---
@@ -150,9 +150,9 @@ Plano de execução para alinhar o servidor Kommo MCP à [documentação oficial
 
 - [x] **7.1** Adotar `@modelcontextprotocol/server` e o adaptador Node oficiais.
 - [x] **7.2** Manter Express para health, autenticação e Origin, delegando o protocolo ao SDK.
-- [x] **7.3** Registrar tools, resources e prompts uma única vez para as eras moderna e legada.
+- [x] **7.3** Registrar tools, resources e prompts para a revisão moderna `2026-07-28`.
 - [x] **7.4** Manter a lógica de negócio Kommo separada dos handlers de protocolo.
-- [x] **7.5** Remover parsing JSON-RPC e validação AJV duplicados; testar com o cliente oficial nas duas eras.
+- [x] **7.5** Remover parsing JSON-RPC e validação AJV duplicados; testar a revisão moderna e a rejeição de clientes legados.
 
 **Entregável:** Servidor baseado no SDK oficial, com comportamento igual ou melhor ao atual.
 

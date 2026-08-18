@@ -77,7 +77,7 @@ export function createApp(options: AppOptions = {}) {
   }
 
   const mcpHandler = createMcpHandler(() => createKommoMcpServer(kommoAPI), {
-    legacy: 'stateless',
+    legacy: 'reject',
     onerror: (error) => logger.error('MCP request failed', error),
   });
   const nodeHandler = toNodeHandler(mcpHandler, {
@@ -90,16 +90,14 @@ export function createApp(options: AppOptions = {}) {
       origin(origin, callback) {
         callback(null, originAllowed(origin));
       },
-      methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+      methods: ['POST', 'OPTIONS'],
       allowedHeaders: [
         'Content-Type',
         'Accept',
         'MCP-Protocol-Version',
-        'MCP-Session-Id',
         'Authorization',
         'X-API-Key',
       ],
-      exposedHeaders: ['MCP-Session-Id'],
     }),
   );
 

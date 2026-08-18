@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import request from 'supertest';
 import { createApp } from '../dist/http-streamable.js';
 
-const legacyProtocol = '2025-11-25';
 const accept = 'application/json, text/event-stream';
 
 function legacyInitialize() {
@@ -12,20 +11,11 @@ function legacyInitialize() {
     id: 1,
     method: 'initialize',
     params: {
-      protocolVersion: legacyProtocol,
+      protocolVersion: '2025-11-25',
       capabilities: {},
       clientInfo: { name: 'test', version: '1' },
     },
   };
-}
-
-function parseSseData(response) {
-  const data = response.text
-    .split('\n')
-    .find((line) => line.startsWith('data: '))
-    ?.slice(6);
-  assert.ok(data);
-  return JSON.parse(data);
 }
 
 test('health reports the modern protocol without exposing the Kommo account URL', async () => {
@@ -37,17 +27,15 @@ test('health reports the modern protocol without exposing the Kommo account URL'
   assert.equal(response.body.kommo_base_url, undefined);
 });
 
-test('keeps the official stateless fallback for legacy clients', async () => {
+test('rejects legacy clients and advertises the modern protocol', async () => {
   const app = createApp({ logLevel: 'silent' });
   const response = await request(app)
     .post('/mcp')
     .set('Accept', accept)
     .send(legacyInitialize())
-    .expect(200);
-  assert.equal(parseSseData(response).result.protocolVersion, legacyProtocol);
-  assert.equal(response.headers['mcp-session-id'], undefined);
-
-  await request(app).delete('/mcp').expect(405);
+    .expect(400);
+  assert.equal(response.body.error.code, -32022);
+  assert.deepEqual(response.body.error.data.supported, ['2026-07-28']);
 });
 
 test('rejects non-JSON MCP requests', async () => {
@@ -73,5 +61,5 @@ test('blocks untrusted browser origins and enforces configured auth', async () =
     .set('Accept', accept)
     .set('Authorization', 'Bearer test-secret')
     .send(payload)
-    .expect(200);
+    .expect(400);
 });

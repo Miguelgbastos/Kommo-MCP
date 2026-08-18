@@ -34,10 +34,9 @@ e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Servidor exige autenticação quando exposto fora de interfaces loopback.
 - Tipos da API Kommo e da análise conversacional agora são explícitos; o lint
   volta a proibir `any` em todo código-fonte.
-- Negociação compatível com as revisões MCP legadas até `2025-11-25` e
-  instruções atuais para conectores remotos do Claude Desktop.
-- Servidor migrado para o SDK MCP oficial v2, com negociação moderna
-  `2026-07-28` e fallback stateless para clientes legados.
+- Instruções atuais para conectores remotos do Claude Desktop.
+- Servidor migrado integralmente para o SDK MCP oficial v2 e para a revisão
+  `2026-07-28`; clientes legados agora são rejeitados explicitamente.
 
 ### Removido
 
