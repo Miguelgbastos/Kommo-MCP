@@ -6,8 +6,8 @@ Este roadmap orienta contribuições; não representa compromisso de prazo.
 
 - Ampliar testes dos handlers com respostas simuladas da API Kommo.
 - Validar Cursor e Claude Desktop de ponta a ponta e registrar versões testadas.
-- Substituir os tipos `any` remanescentes por tipos explícitos da API Kommo.
-- Preparar a primeira release versionada e imagens Docker reproduzíveis.
+- Validar a revisão MCP `2026-07-28` com mais clientes da comunidade.
+- Publicar imagens Docker reproduzíveis para releases versionadas.
 
 ## Próximo
 

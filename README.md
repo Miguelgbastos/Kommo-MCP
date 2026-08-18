@@ -38,8 +38,8 @@ Desktop, etc.).
 
 ## Funcionalidades
 
-- **Protocolo MCP v2**: lifecycle, transporte Streamable HTTP, validação de
-  headers (`MCP-Protocol-Version`, `MCP-Session-Id`)
+- **MCP moderno e compatível**: revisão `2026-07-28` pelo SDK oficial, com
+  fallback stateless para clientes legados de 2024/2025
 - **23 tools**: leads, contatos, empresas, tarefas, pipelines, notas,
   relatórios, dashboard, Salesbot, motivos de perda
 - **5 resources**: relatório de vendas, pipelines, motivos de perda,
@@ -49,8 +49,8 @@ Desktop, etc.).
 - **`ask_kommo`**: interface conversacional em linguagem natural
 - **Arquitetura modular**: código organizado em módulos (`kommo-api`, `mcp/`,
   `ask-kommo`)
-- **Segurança**: validação de Origin, sessões com expiração, validação dos
-  argumentos das tools e autenticação obrigatória fora de localhost
+- **Segurança**: validação de Origin, validação dos argumentos das tools e
+  autenticação obrigatória fora de localhost
 
 ## Pré-requisitos
 
@@ -153,10 +153,8 @@ executados como processos; o Kommo MCP oferece atualmente transporte HTTP.
 
 ## Endpoints
 
-- **MCP**: `POST http://localhost:3001/mcp` — JSON-RPC (`initialize`,
-  `tools/list`, `tools/call`, `resources/list`, `resources/read`,
-  `prompts/list`, `prompts/get`)
-- **Encerrar sessão**: `DELETE http://localhost:3001/mcp`
+- **MCP**: `POST http://localhost:3001/mcp` — negociação moderna via
+  `server/discover` ou lifecycle legado, conforme o cliente
 - **Health**: `GET http://localhost:3001/health`
 
 ## Ferramentas MCP
@@ -246,6 +244,7 @@ src/
 ├── ask-kommo.ts             # Lógica conversacional ask_kommo
 ├── http-streamable.ts       # Servidor MCP HTTP
 └── mcp/
+    ├── server.ts            # Definição oficial do servidor MCP
     ├── types.ts             # Tipos MCP
     ├── tool-definitions.ts  # Schemas das tools
     ├── tool-handlers.ts     # Execução das tools
@@ -255,17 +254,19 @@ src/
 
 ## Exemplos de uso
 
-**1. Inicializar sessão MCP:**
+Os clientes MCP fazem a negociação automaticamente. Para diagnóstico manual,
+os exemplos abaixo usam o fallback legado stateless; não há ID de sessão para
+guardar. Para integrações novas, prefira o SDK oficial com negociação da revisão
+`2026-07-28`.
+
+**1. Inicializar o cliente legado:**
 
 ```bash
 curl -X POST http://localhost:3001/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"cli","version":"1.0.0"}}}'
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"cli","version":"1.0.0"}}}'
 ```
-
-Guarde o header `MCP-Session-Id` retornado e envie a notificação
-`notifications/initialized` antes das demais chamadas.
 
 **2. Listar ferramentas:**
 
@@ -273,8 +274,7 @@ Guarde o header `MCP-Session-Id` retornado e envie a notificação
 curl -X POST http://localhost:3001/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
-  -H "MCP-Protocol-Version: 2025-06-18" \
-  -H "MCP-Session-Id: <id-da-sessao>" \
+  -H "MCP-Protocol-Version: 2025-11-25" \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
 ```
 
@@ -284,8 +284,7 @@ curl -X POST http://localhost:3001/mcp \
 curl -X POST http://localhost:3001/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
-  -H "MCP-Protocol-Version: 2025-06-18" \
-  -H "MCP-Session-Id: <id-da-sessao>" \
+  -H "MCP-Protocol-Version: 2025-11-25" \
   -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"move_lead","arguments":{"lead_id":12345,"status_id":142}}}'
 ```
 
@@ -295,8 +294,7 @@ curl -X POST http://localhost:3001/mcp \
 curl -X POST http://localhost:3001/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
-  -H "MCP-Protocol-Version: 2025-06-18" \
-  -H "MCP-Session-Id: <id-da-sessao>" \
+  -H "MCP-Protocol-Version: 2025-11-25" \
   -d '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"add_note","arguments":{"entity_type":"leads","entity_id":12345,"text":"Cliente interessado no plano premium"}}}'
 ```
 
@@ -332,8 +330,8 @@ curl -X POST http://localhost:3001/mcp \
 | Componente     | Suporte atual                                   |
 | -------------- | ----------------------------------------------- |
 | Node.js        | 20 e 22                                         |
-| Protocolo MCP  | revisões legadas de `2024-11-05` a `2025-11-25` |
-| Transporte     | Streamable HTTP, resposta JSON ou SSE           |
+| Protocolo MCP  | `2026-07-28` + fallback legado até `2025-11-25` |
+| Transporte     | Streamable HTTP oficial; respostas JSON ou SSE  |
 | Cursor         | Configuração HTTP documentada                   |
 | Claude Desktop | Conector remoto via Settings → Connectors       |
 | Instalação     | Git/Docker; ainda não publicado no npm          |
