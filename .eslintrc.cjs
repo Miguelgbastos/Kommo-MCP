@@ -21,8 +21,7 @@ module.exports = {
       'warn',
       { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
     ],
-    // The Kommo API exposes heterogeneous payloads. Tighten these types incrementally.
-    '@typescript-eslint/no-explicit-any': 'off',
+    '@typescript-eslint/no-explicit-any': 'error',
     'no-console': 'off',
   },
 };

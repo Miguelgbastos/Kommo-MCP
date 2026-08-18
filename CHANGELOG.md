@@ -32,6 +32,8 @@ e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Dependências de produção atualizadas e vulnerabilidades conhecidas corrigidas.
 - CI passa a reprovar lint/formatação, executar testes e auditar dependências.
 - Servidor exige autenticação quando exposto fora de interfaces loopback.
+- Tipos da API Kommo e da análise conversacional agora são explícitos; o lint
+  volta a proibir `any` em todo código-fonte.
 
 ### Removido
 

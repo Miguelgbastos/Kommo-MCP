@@ -5,6 +5,34 @@ export interface KommoConfig {
   accessToken: string;
 }
 
+export type KommoQueryParams = Record<string, string | number | boolean | undefined>;
+
+export interface KommoCustomFieldValue {
+  field_id?: number;
+  field_name?: string;
+  field_code?: string;
+  values?: Array<Record<string, unknown>>;
+}
+
+export interface KommoAccount {
+  id: number;
+  name: string;
+  subdomain: string;
+  country?: string;
+  currency?: string;
+  timezone?: string;
+  [key: string]: unknown;
+}
+
+export interface KommoUser {
+  id: number;
+  name: string;
+  email?: string;
+  language?: string;
+  rights?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export interface KommoLead {
   id: number;
   name: string;
@@ -18,6 +46,7 @@ export interface KommoLead {
   closed_at?: number;
   loss_reason_id?: number;
   source_id?: number;
+  status?: string | number;
   tags?: string[];
   contacts?: KommoContact[];
   companies?: KommoCompany[];
@@ -32,7 +61,7 @@ export interface KommoContact {
   created_by: number;
   created_at: number;
   updated_at: number;
-  custom_fields_values?: any[];
+  custom_fields_values?: KommoCustomFieldValue[];
   tags?: string[];
   leads?: KommoLead[];
   companies?: KommoCompany[];
@@ -45,7 +74,7 @@ export interface KommoCompany {
   created_by: number;
   created_at: number;
   updated_at: number;
-  custom_fields_values?: any[];
+  custom_fields_values?: KommoCustomFieldValue[];
   tags?: string[];
   leads?: KommoLead[];
   contacts?: KommoContact[];
@@ -92,7 +121,7 @@ export interface KommoEvent {
   created_by: number;
   responsible_user_id: number;
   text?: string;
-  data?: any;
+  data?: unknown;
 }
 
 export interface KommoActivity {
@@ -105,7 +134,7 @@ export interface KommoActivity {
   created_by: number;
   responsible_user_id: number;
   text?: string;
-  data?: any;
+  data?: unknown;
 }
 
 // Novas interfaces para Status
@@ -214,18 +243,18 @@ export class KommoAPI {
   }
 
   // Account methods
-  async getAccount(): Promise<any> {
+  async getAccount(): Promise<KommoAccount> {
     const response = await this.client.get('/api/v4/account');
     return response.data;
   }
 
   // Leads methods
-  async getLeads(params?: any): Promise<{ _embedded: { leads: KommoLead[] } }> {
+  async getLeads(params?: KommoQueryParams): Promise<{ _embedded: { leads: KommoLead[] } }> {
     const response = await this.client.get('/api/v4/leads', { params });
     return response.data;
   }
 
-  async getAllLeads(params?: any): Promise<KommoLead[]> {
+  async getAllLeads(params?: KommoQueryParams): Promise<KommoLead[]> {
     const allLeads: KommoLead[] = [];
     let page = 1;
     let hasMore = true;
@@ -298,7 +327,9 @@ export class KommoAPI {
   }
 
   // Contacts methods
-  async getContacts(params?: any): Promise<{ _embedded: { contacts: KommoContact[] } }> {
+  async getContacts(
+    params?: KommoQueryParams,
+  ): Promise<{ _embedded: { contacts: KommoContact[] } }> {
     const response = await this.client.get('/api/v4/contacts', { params });
     return response.data;
   }
@@ -319,7 +350,9 @@ export class KommoAPI {
   }
 
   // Companies methods
-  async getCompanies(params?: any): Promise<{ _embedded: { companies: KommoCompany[] } }> {
+  async getCompanies(
+    params?: KommoQueryParams,
+  ): Promise<{ _embedded: { companies: KommoCompany[] } }> {
     const response = await this.client.get('/api/v4/companies', { params });
     return response.data;
   }
@@ -351,7 +384,7 @@ export class KommoAPI {
   }
 
   // Tasks methods
-  async getTasks(params?: any): Promise<{ _embedded: { tasks: KommoTask[] } }> {
+  async getTasks(params?: KommoQueryParams): Promise<{ _embedded: { tasks: KommoTask[] } }> {
     const response = await this.client.get('/api/v4/tasks', { params });
     return response.data;
   }
@@ -372,12 +405,12 @@ export class KommoAPI {
   }
 
   // Users methods
-  async getUsers(): Promise<{ _embedded: { users: any[] } }> {
+  async getUsers(): Promise<{ _embedded: { users: KommoUser[] } }> {
     const response = await this.client.get('/api/v4/users');
     return response.data;
   }
 
-  async getUser(id: number): Promise<any> {
+  async getUser(id: number): Promise<KommoUser> {
     const response = await this.client.get(`/api/v4/users/${id}`);
     return response.data;
   }
@@ -387,7 +420,7 @@ export class KommoAPI {
   // Eventos de leads
   async getLeadEvents(
     leadId: number,
-    params?: any,
+    params?: KommoQueryParams,
   ): Promise<{ _embedded: { events: KommoEvent[] } }> {
     const response = await this.client.get(`/api/v4/leads/${leadId}/events`, { params });
     return response.data;
@@ -413,7 +446,7 @@ export class KommoAPI {
   // Atividades de contatos
   async getContactActivities(
     contactId: number,
-    params?: any,
+    params?: KommoQueryParams,
   ): Promise<{ _embedded: { activities: KommoActivity[] } }> {
     const response = await this.client.get(`/api/v4/contacts/${contactId}/activities`, { params });
     return response.data;
@@ -478,7 +511,9 @@ export class KommoAPI {
     pipelineId: number,
     statusId?: number,
   ): Promise<KommoLead> {
-    const updateData: any = { pipeline_id: pipelineId };
+    const updateData: Pick<KommoLead, 'pipeline_id'> & Partial<Pick<KommoLead, 'status_id'>> = {
+      pipeline_id: pipelineId,
+    };
     if (statusId) {
       updateData.status_id = statusId;
     }
@@ -500,7 +535,10 @@ export class KommoAPI {
     return response.data;
   }
 
-  async getLeadConversionReport(dateFrom: string, dateTo: string): Promise<any> {
+  async getLeadConversionReport(
+    dateFrom: string,
+    dateTo: string,
+  ): Promise<Record<string, unknown>> {
     const response = await this.client.get('/api/v4/leads/reports', {
       params: {
         date_from: dateFrom,
@@ -511,7 +549,10 @@ export class KommoAPI {
     return response.data;
   }
 
-  async getPipelinePerformanceReport(dateFrom: string, dateTo: string): Promise<any> {
+  async getPipelinePerformanceReport(
+    dateFrom: string,
+    dateTo: string,
+  ): Promise<Record<string, unknown>> {
     const response = await this.client.get('/api/v4/leads/pipelines/reports', {
       params: {
         date_from: dateFrom,
@@ -527,8 +568,12 @@ export class KommoAPI {
     return response.data;
   }
 
-  async getUserPerformanceStats(userId: number, dateFrom?: string, dateTo?: string): Promise<any> {
-    const params: any = {};
+  async getUserPerformanceStats(
+    userId: number,
+    dateFrom?: string,
+    dateTo?: string,
+  ): Promise<Record<string, unknown>> {
+    const params: KommoQueryParams = {};
     if (dateFrom) params.date_from = dateFrom;
     if (dateTo) params.date_to = dateTo;
 
@@ -537,13 +582,17 @@ export class KommoAPI {
   }
 
   // Analytics avançados
-  async getLeadAnalytics(leadId: number): Promise<any> {
+  async getLeadAnalytics(leadId: number): Promise<Record<string, unknown>> {
     const response = await this.client.get(`/api/v4/leads/${leadId}/analytics`);
     return response.data;
   }
 
-  async getPipelineAnalytics(pipelineId: number, dateFrom?: string, dateTo?: string): Promise<any> {
-    const params: any = {};
+  async getPipelineAnalytics(
+    pipelineId: number,
+    dateFrom?: string,
+    dateTo?: string,
+  ): Promise<Record<string, unknown>> {
+    const params: KommoQueryParams = {};
     if (dateFrom) params.date_from = dateFrom;
     if (dateTo) params.date_to = dateTo;
 
@@ -586,13 +635,13 @@ export class KommoAPI {
   async runSalesbot(params: {
     entity_id: number;
     entity_type: string;
-    [key: string]: any;
-  }): Promise<any> {
+    [key: string]: unknown;
+  }): Promise<unknown> {
     const response = await this.client.post('/api/v4/bots/run', params);
     return response.data;
   }
 
-  async stopSalesbot(botId: number): Promise<any> {
+  async stopSalesbot(botId: number): Promise<unknown> {
     const response = await this.client.post(`/api/v4/bots/${botId}/stop`);
     return response.data;
   }

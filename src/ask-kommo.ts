@@ -1,10 +1,10 @@
-import { KommoAPI } from './kommo-api.js';
+import { KommoAPI, type KommoLead } from './kommo-api.js';
 import type { McpToolResult } from './mcp/types.js';
 
 const currentYear = new Date().getFullYear();
 
 interface CacheEntry {
-  data: unknown[];
+  data: KommoLead[];
   timestamp: number;
   expiresAt: number;
 }
@@ -23,13 +23,13 @@ function isCacheValid(): boolean {
   return Date.now() < leadsCache.expiresAt && leadsCache.data.length > 0;
 }
 
-function setCacheData(data: unknown[]): void {
+function setCacheData(data: KommoLead[]): void {
   leadsCache.data = data;
   leadsCache.timestamp = Date.now();
   leadsCache.expiresAt = Date.now() + CACHE_DURATION;
 }
 
-function getCacheData(): unknown[] {
+function getCacheData(): KommoLead[] {
   return leadsCache.data;
 }
 
@@ -260,10 +260,10 @@ const monthNames = [
 ];
 
 function filterLeadsByPeriod(
-  leads: any[],
+  leads: KommoLead[],
   temporalFilter: string | null,
   month: number | null,
-): any[] {
+): KommoLead[] {
   let filtered = leads;
   if (temporalFilter) {
     const { start, end } = getDateRange(temporalFilter);
@@ -285,10 +285,10 @@ export async function handleAskKommo(kommoAPI: KommoAPI, question: string): Prom
   const startTime = Date.now();
   const questionLower = question.toLowerCase();
 
-  let leadsArray: any[];
+  let leadsArray: KommoLead[];
   const isCacheHit = isCacheValid();
   if (isCacheHit) {
-    leadsArray = getCacheData() as any[];
+    leadsArray = getCacheData();
   } else {
     leadsArray = await kommoAPI.getAllLeads();
     setCacheData(leadsArray);
@@ -309,7 +309,7 @@ export async function handleAskKommo(kommoAPI: KommoAPI, question: string): Prom
     questionLower.includes('fechado') ||
     questionLower.includes('ganho')
   ) {
-    let salesLeads = leadsArray.filter((lead: any) => {
+    let salesLeads = leadsArray.filter((lead) => {
       const status = lead.status?.toString().toLowerCase() || '';
       const isClosedStatus =
         status.includes('fechado') || status.includes('ganho') || status.includes('concluído');
@@ -318,20 +318,18 @@ export async function handleAskKommo(kommoAPI: KommoAPI, question: string): Prom
 
     if (temporalFilter) {
       const { start, end } = getDateRange(temporalFilter);
-      salesLeads = salesLeads.filter((lead: any) => {
+      salesLeads = salesLeads.filter((lead) => {
         const updatedAt = new Date(lead.updated_at * 1000);
         return updatedAt >= start && updatedAt <= end;
       });
     }
 
     if (category) {
-      salesLeads = salesLeads.filter((lead: any) =>
-        (lead.name || '').toLowerCase().includes(category),
-      );
+      salesLeads = salesLeads.filter((lead) => (lead.name || '').toLowerCase().includes(category));
     }
 
     const totalSales = salesLeads.length;
-    const totalValue = salesLeads.reduce((sum: number, lead: any) => sum + (lead.price || 0), 0);
+    const totalValue = salesLeads.reduce((sum, lead) => sum + (lead.price || 0), 0);
     const averageTicket = totalSales > 0 ? totalValue / totalSales : 0;
 
     response = `💰 **Análise de Vendas**\n\n`;
@@ -350,12 +348,12 @@ export async function handleAskKommo(kommoAPI: KommoAPI, question: string): Prom
     const filteredLeads = filterLeadsByPeriod(leadsArray, temporalFilter, month);
     const contacts = await kommoAPI.getContacts({ limit: 250 });
     const contactsArray = contacts._embedded?.contacts || [];
-    const leadsWithContactInfo = filteredLeads.filter((lead: any) =>
+    const leadsWithContactInfo = filteredLeads.filter((lead) =>
       contactsArray.some(
-        (c: any) =>
-          c.name &&
+        (contact) =>
+          contact.name &&
           lead.name &&
-          c.name.toLowerCase().includes(lead.name.toLowerCase().split(' ')[0]),
+          contact.name.toLowerCase().includes(lead.name.toLowerCase().split(' ')[0]),
       ),
     );
 
@@ -367,13 +365,13 @@ export async function handleAskKommo(kommoAPI: KommoAPI, question: string): Prom
   } else if (questionLower.includes('lead') || questionLower.includes('leads')) {
     let filteredLeads = filterLeadsByPeriod(leadsArray, temporalFilter, month);
     if (category) {
-      filteredLeads = filteredLeads.filter((lead: any) =>
+      filteredLeads = filteredLeads.filter((lead) =>
         (lead.name || '').toLowerCase().includes(category),
       );
     }
 
     const totalLeads = filteredLeads.length;
-    const totalValue = filteredLeads.reduce((sum: number, lead: any) => sum + (lead.price || 0), 0);
+    const totalValue = filteredLeads.reduce((sum, lead) => sum + (lead.price || 0), 0);
 
     response = `📋 **Análise de Leads**\n\n`;
     response += `📊 **Total de leads:** ${totalLeads}\n`;
@@ -394,7 +392,7 @@ export async function handleAskKommo(kommoAPI: KommoAPI, question: string): Prom
     suggestions.push('"Quantas vendas tivemos este mês?"');
   } else {
     const totalLeads = leadsArray.length;
-    const totalValue = leadsArray.reduce((sum: number, lead: any) => sum + (lead.price || 0), 0);
+    const totalValue = leadsArray.reduce((sum, lead) => sum + (lead.price || 0), 0);
     response = `🤔 Entendi sua mensagem: "${question}"\n\n`;
     response += `📊 **Resumo geral:**\n`;
     response += `• Total de leads: ${totalLeads}\n`;
