@@ -1,6 +1,6 @@
 {
   "name": "kommo-mcp-server",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "MCP (Model Context Protocol) Server for Kommo CRM integration — expõe tools, resources e prompts para clientes MCP como Cursor e Claude.",
   "main": "dist/http-streamable.js",
   "type": "module",
@@ -10,6 +10,7 @@
     "start": "node dist/http-streamable.js",
     "dev": "ts-node --esm src/http-streamable.ts",
     "test": "npm run build && node --test test/*.test.mjs",
+    "prepublishOnly": "npm run typecheck && npm run lint && npm test && npm run audit:prod",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\" --max-warnings=0",

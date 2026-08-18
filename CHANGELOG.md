@@ -21,6 +21,10 @@ e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Teste de conformidade ponta a ponta com o cliente MCP TypeScript oficial.
 - Validação JSON Schema dos argumentos de todas as tools pelo SDK oficial.
 - `ROADMAP.md` e `MAINTAINERS.md`.
+- Endpoint `/ready`, timeout configurável e retry seguro para leituras.
+- Anotações MCP de risco e confirmação opcional para operações de escrita.
+- Testes de contrato HTTP da API Kommo e cobertura de todas as tools anunciadas.
+- Workflow de release para imagem GHCR com SBOM/provenance e publicação npm opcional.
 
 ### Modificado
 
@@ -37,12 +41,18 @@ e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Instruções atuais para conectores remotos do Claude Desktop.
 - Servidor migrado integralmente para o SDK MCP oficial v2 e para a revisão
   `2026-07-28`; clientes legados agora são rejeitados explicitamente.
+- Versão preparada para `3.0.0` devido à quebra de compatibilidade do protocolo.
+- Relatórios e dashboard passaram a ser calculados com endpoints públicos
+  documentados de leads, pipelines, usuários e tarefas.
+- Payloads de iniciar e parar Salesbot corrigidos conforme a API v4 oficial.
+- Falhas de paginação agora interrompem a operação em vez de retornar totais parciais.
 
 ### Removido
 
 - `GITHUB_UPDATE_INSTRUCTIONS.md` (documento interno que não deveria estar no repositório público).
 - Entrada `.dockerignore` do `.gitignore` (o `.dockerignore` agora é versionado).
 - Implementação MCP HTTP artesanal e sua validação AJV duplicada.
+- Chamadas analíticas para endpoints Kommo sem documentação pública.
 
 ## [2.0.0]
 
