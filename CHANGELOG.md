@@ -18,6 +18,7 @@ e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Arquivo `.dockerignore`.
 - Testes de integração do lifecycle, sessões, autenticação, Origin e schemas.
 - Testes unitários dos handlers de leitura e escrita com cliente Kommo simulado.
+- Teste de conformidade ponta a ponta com o cliente MCP TypeScript oficial.
 - Validação JSON Schema dos argumentos de todas as tools.
 - Expiração e encerramento explícito de sessões MCP.
 - `ROADMAP.md` e `MAINTAINERS.md`.
@@ -34,6 +35,8 @@ e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Servidor exige autenticação quando exposto fora de interfaces loopback.
 - Tipos da API Kommo e da análise conversacional agora são explícitos; o lint
   volta a proibir `any` em todo código-fonte.
+- Negociação compatível com as revisões MCP legadas até `2025-11-25` e
+  instruções atuais para conectores remotos do Claude Desktop.
 
 ### Removido
 
