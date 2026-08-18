@@ -207,7 +207,7 @@ export class KommoAPI {
     this.client = axios.create({
       baseURL: config.baseUrl,
       headers: {
-        'Authorization': `Bearer ${config.accessToken}`,
+        Authorization: `Bearer ${config.accessToken}`,
         'Content-Type': 'application/json',
       },
     });
@@ -235,32 +235,32 @@ export class KommoAPI {
 
     while (hasMore && consecutiveEmptyPages < maxEmptyPages) {
       try {
-        const response = await this.client.get('/api/v4/leads', { 
-          params: { 
-            ...params, 
-            limit, 
-            page 
-          } 
+        const response = await this.client.get('/api/v4/leads', {
+          params: {
+            ...params,
+            limit,
+            page,
+          },
         });
-        
+
         const data = response.data;
         const leads = data._embedded?.leads || [];
-        
+
         if (leads.length === 0) {
           consecutiveEmptyPages++;
         } else {
           consecutiveEmptyPages = 0;
           allLeads.push(...leads);
         }
-        
+
         page++;
-        
+
         // Check if there's a next page
         hasMore = !!data._links?.next;
-        
+
         // Add small delay to avoid rate limiting
         if (hasMore) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
       } catch (error) {
         console.error(`Error fetching page ${page}:`, error);
@@ -385,7 +385,10 @@ export class KommoAPI {
   // ===== NOVOS MÉTODOS: GESTÃO DE EVENTOS E ATIVIDADES =====
 
   // Eventos de leads
-  async getLeadEvents(leadId: number, params?: any): Promise<{ _embedded: { events: KommoEvent[] } }> {
+  async getLeadEvents(
+    leadId: number,
+    params?: any,
+  ): Promise<{ _embedded: { events: KommoEvent[] } }> {
     const response = await this.client.get(`/api/v4/leads/${leadId}/events`, { params });
     return response.data;
   }
@@ -395,24 +398,46 @@ export class KommoAPI {
     return response.data._embedded.events[0];
   }
 
-  async updateLeadEvent(leadId: number, eventId: number, eventData: Partial<KommoEvent>): Promise<KommoEvent> {
-    const response = await this.client.patch(`/api/v4/leads/${leadId}/events/${eventId}`, eventData);
+  async updateLeadEvent(
+    leadId: number,
+    eventId: number,
+    eventData: Partial<KommoEvent>,
+  ): Promise<KommoEvent> {
+    const response = await this.client.patch(
+      `/api/v4/leads/${leadId}/events/${eventId}`,
+      eventData,
+    );
     return response.data;
   }
 
   // Atividades de contatos
-  async getContactActivities(contactId: number, params?: any): Promise<{ _embedded: { activities: KommoActivity[] } }> {
+  async getContactActivities(
+    contactId: number,
+    params?: any,
+  ): Promise<{ _embedded: { activities: KommoActivity[] } }> {
     const response = await this.client.get(`/api/v4/contacts/${contactId}/activities`, { params });
     return response.data;
   }
 
-  async createContactActivity(contactId: number, activityData: Partial<KommoActivity>): Promise<KommoActivity> {
-    const response = await this.client.post(`/api/v4/contacts/${contactId}/activities`, [activityData]);
+  async createContactActivity(
+    contactId: number,
+    activityData: Partial<KommoActivity>,
+  ): Promise<KommoActivity> {
+    const response = await this.client.post(`/api/v4/contacts/${contactId}/activities`, [
+      activityData,
+    ]);
     return response.data._embedded.activities[0];
   }
 
-  async updateContactActivity(contactId: number, activityId: number, activityData: Partial<KommoActivity>): Promise<KommoActivity> {
-    const response = await this.client.patch(`/api/v4/contacts/${contactId}/activities/${activityId}`, activityData);
+  async updateContactActivity(
+    contactId: number,
+    activityId: number,
+    activityData: Partial<KommoActivity>,
+  ): Promise<KommoActivity> {
+    const response = await this.client.patch(
+      `/api/v4/contacts/${contactId}/activities/${activityId}`,
+      activityData,
+    );
     return response.data;
   }
 
@@ -424,13 +449,21 @@ export class KommoAPI {
     return response.data;
   }
 
-  async createLeadStatus(pipelineId: number, statusData: Partial<KommoStatus>): Promise<KommoStatus> {
-    const response = await this.client.post(`/api/v4/leads/pipelines/${pipelineId}/statuses`, [statusData]);
+  async createLeadStatus(
+    pipelineId: number,
+    statusData: Partial<KommoStatus>,
+  ): Promise<KommoStatus> {
+    const response = await this.client.post(`/api/v4/leads/pipelines/${pipelineId}/statuses`, [
+      statusData,
+    ]);
     return response.data._embedded.statuses[0];
   }
 
   async updateLeadStatus(statusId: number, statusData: Partial<KommoStatus>): Promise<KommoStatus> {
-    const response = await this.client.patch(`/api/v4/leads/pipelines/statuses/${statusId}`, statusData);
+    const response = await this.client.patch(
+      `/api/v4/leads/pipelines/statuses/${statusId}`,
+      statusData,
+    );
     return response.data;
   }
 
@@ -440,7 +473,11 @@ export class KommoAPI {
     return response.data;
   }
 
-  async moveLeadToPipeline(leadId: number, pipelineId: number, statusId?: number): Promise<KommoLead> {
+  async moveLeadToPipeline(
+    leadId: number,
+    pipelineId: number,
+    statusId?: number,
+  ): Promise<KommoLead> {
     const updateData: any = { pipeline_id: pipelineId };
     if (statusId) {
       updateData.status_id = statusId;
@@ -457,8 +494,8 @@ export class KommoAPI {
       params: {
         date_from: dateFrom,
         date_to: dateTo,
-        report_type: 'sales'
-      }
+        report_type: 'sales',
+      },
     });
     return response.data;
   }
@@ -468,8 +505,8 @@ export class KommoAPI {
       params: {
         date_from: dateFrom,
         date_to: dateTo,
-        report_type: 'conversion'
-      }
+        report_type: 'conversion',
+      },
     });
     return response.data;
   }
@@ -478,8 +515,8 @@ export class KommoAPI {
     const response = await this.client.get('/api/v4/leads/pipelines/reports', {
       params: {
         date_from: dateFrom,
-        date_to: dateTo
-      }
+        date_to: dateTo,
+      },
     });
     return response.data;
   }
@@ -494,7 +531,7 @@ export class KommoAPI {
     const params: any = {};
     if (dateFrom) params.date_from = dateFrom;
     if (dateTo) params.date_to = dateTo;
-    
+
     const response = await this.client.get(`/api/v4/users/${userId}/performance`, { params });
     return response.data;
   }
@@ -509,8 +546,10 @@ export class KommoAPI {
     const params: any = {};
     if (dateFrom) params.date_from = dateFrom;
     if (dateTo) params.date_to = dateTo;
-    
-    const response = await this.client.get(`/api/v4/leads/pipelines/${pipelineId}/analytics`, { params });
+
+    const response = await this.client.get(`/api/v4/leads/pipelines/${pipelineId}/analytics`, {
+      params,
+    });
     return response.data;
   }
 
@@ -518,7 +557,7 @@ export class KommoAPI {
   async getNotes(
     entityType: KommoEntityType,
     entityId: number,
-    params?: Record<string, unknown>
+    params?: Record<string, unknown>,
   ): Promise<{ _embedded: { notes: KommoNote[] } }> {
     const response = await this.client.get(`/api/v4/${entityType}/${entityId}/notes`, { params });
     return response.data;
@@ -527,7 +566,7 @@ export class KommoAPI {
   async createNote(
     entityType: KommoEntityType,
     entityId: number,
-    note: Partial<KommoNote>
+    note: Partial<KommoNote>,
   ): Promise<KommoNote> {
     const response = await this.client.post(`/api/v4/${entityType}/${entityId}/notes`, [note]);
     return response.data._embedded.notes[0];
@@ -544,7 +583,11 @@ export class KommoAPI {
   }
 
   // ===== SALESBOT (API v4 2026) =====
-  async runSalesbot(params: { entity_id: number; entity_type: string; [key: string]: any }): Promise<any> {
+  async runSalesbot(params: {
+    entity_id: number;
+    entity_type: string;
+    [key: string]: any;
+  }): Promise<any> {
     const response = await this.client.post('/api/v4/bots/run', params);
     return response.data;
   }

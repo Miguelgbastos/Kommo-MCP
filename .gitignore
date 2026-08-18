@@ -100,9 +100,6 @@ temp/
 ehthumbs.db
 Thumbs.db
 
-# Docker
-.dockerignore
-
 # Server logs
 server.log
 *.log

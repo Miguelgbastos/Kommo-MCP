@@ -24,7 +24,10 @@ export const MCP_TOOLS: McpToolDefinition[] = [
     description: 'Obter lista de leads do Kommo CRM',
     inputSchema: {
       type: 'object',
-      properties: { ...paginationProperties, query: { type: 'string', description: 'Filtro de busca (query da API)' } },
+      properties: {
+        ...paginationProperties,
+        query: { type: 'string', description: 'Filtro de busca (query da API)' },
+      },
       additionalProperties: false,
     },
   },
@@ -95,7 +98,10 @@ export const MCP_TOOLS: McpToolDefinition[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        pipeline_id: { type: 'number', description: 'ID do pipeline (opcional, para obter status)' },
+        pipeline_id: {
+          type: 'number',
+          description: 'ID do pipeline (opcional, para obter status)',
+        },
       },
       additionalProperties: false,
     },
@@ -158,7 +164,10 @@ export const MCP_TOOLS: McpToolDefinition[] = [
       properties: {
         text: { type: 'string', description: 'Texto da tarefa' },
         entity_id: { type: 'number', description: 'ID da entidade vinculada' },
-        entity_type: { type: 'string', description: 'Tipo da entidade (leads, contacts, companies)' },
+        entity_type: {
+          type: 'string',
+          description: 'Tipo da entidade (leads, contacts, companies)',
+        },
         complete_till: { type: 'number', description: 'Timestamp Unix de conclusão' },
         responsible_user_id: { type: 'number', description: 'ID do usuário responsável' },
       },

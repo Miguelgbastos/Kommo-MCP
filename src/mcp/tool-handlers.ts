@@ -22,7 +22,7 @@ function isEntityType(value: unknown): value is KommoEntityType {
 export async function executeTool(
   kommoAPI: KommoAPI,
   name: string,
-  args: Record<string, unknown> | undefined
+  args: Record<string, unknown> | undefined,
 ): Promise<McpToolResult> {
   switch (name) {
     case 'get_account':
@@ -111,16 +111,25 @@ export async function executeTool(
       const entityId = args?.entity_id as number;
       const entityType = args?.entity_type as string;
       const completeTill = args?.complete_till as number;
-      if (!text || typeof entityId !== 'number' || !entityType || typeof completeTill !== 'number') {
+      if (
+        !text ||
+        typeof entityId !== 'number' ||
+        !entityType ||
+        typeof completeTill !== 'number'
+      ) {
         return errorResult('Requer text, entity_id, entity_type e complete_till.');
       }
-      return textResult(await kommoAPI.createTask({
-        text,
-        entity_id: entityId,
-        entity_type: entityType,
-        complete_till: completeTill,
-        ...(args?.responsible_user_id ? { responsible_user_id: args.responsible_user_id as number } : {}),
-      }));
+      return textResult(
+        await kommoAPI.createTask({
+          text,
+          entity_id: entityId,
+          entity_type: entityType,
+          complete_till: completeTill,
+          ...(args?.responsible_user_id
+            ? { responsible_user_id: args.responsible_user_id as number }
+            : {}),
+        }),
+      );
     }
 
     case 'get_users':
@@ -158,7 +167,7 @@ export async function executeTool(
         await kommoAPI.createNote(entityType, entityId, {
           note_type: noteType,
           params: { text },
-        })
+        }),
       );
     }
 
@@ -186,7 +195,9 @@ export async function executeTool(
       if (typeof entityId !== 'number' || !entityType) {
         return errorResult('Requer entity_id (número) e entity_type (ex.: leads).');
       }
-      return textResult(await kommoAPI.runSalesbot({ entity_id: entityId, entity_type: entityType, ...args }));
+      return textResult(
+        await kommoAPI.runSalesbot({ entity_id: entityId, entity_type: entityType, ...args }),
+      );
     }
 
     case 'stop_salesbot': {
