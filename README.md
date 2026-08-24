@@ -1,5 +1,7 @@
 # Kommo MCP Server
 
+[English documentation](README.en.md)
+
 [![CI](https://github.com/Miguelgbastos/Kommo-MCP/actions/workflows/ci.yml/badge.svg)](https://github.com/Miguelgbastos/Kommo-MCP/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
@@ -38,8 +40,10 @@ Desktop, etc.).
 
 ## Funcionalidades
 
-- **MCP moderno**: revisão `2026-07-28` pelo SDK oficial, sem camada de
-  compatibilidade legada
+- **MCP moderno e compatível**: revisão `2026-07-28` pelo SDK oficial, com
+  compatibilidade stateless para clientes da família 2025
+- **Dois transportes oficiais**: Streamable HTTP para serviços remotos e
+  `stdio` para clientes locais
 - **23 tools**: leads, contatos, empresas, tarefas, pipelines, notas,
   relatórios, dashboard, Salesbot, motivos de perda
 - **5 resources**: relatório de vendas, pipelines, motivos de perda,
@@ -87,19 +91,20 @@ O servidor sobe em `http://127.0.0.1:3001/mcp`.
 
 ### Variáveis de ambiente
 
-| Variável              | Descrição                                                    | Default     |
-| --------------------- | ------------------------------------------------------------ | ----------- |
-| `KOMMO_BASE_URL`      | URL da conta Kommo (`https://<subdominio>.kommo.com`)        | —           |
-| `KOMMO_ACCESS_TOKEN`  | Token de acesso (integração privada ou OAuth2)               | —           |
-| `KOMMO_TIMEOUT_MS`    | Timeout de cada requisição ao Kommo                          | `15000`     |
-| `KOMMO_MAX_RETRIES`   | Retentativas de leituras em `429`/`5xx`                      | `3`         |
-| `KOMMO_TIMEZONE`      | Fuso IANA dos relatórios; por padrão usa o fuso da conta     | conta Kommo |
-| `PORT`                | Porta HTTP do servidor MCP                                   | `3001`      |
-| `MCP_HOST`            | Host de binding                                              | `127.0.0.1` |
-| `MCP_ALLOWED_ORIGINS` | Origens permitidas (separadas por vírgula)                   | —           |
-| `MCP_AUTH_TOKEN`      | Protege `/mcp`; obrigatório quando `MCP_HOST` não é loopback | —           |
-| `MCP_CONFIRM_WRITES`  | Exige `confirm=true` nas tools que alteram dados             | `false`     |
-| `LOG_LEVEL`           | Nível de log                                                 | `info`      |
+| Variável                    | Descrição                                                    | Default     |
+| --------------------------- | ------------------------------------------------------------ | ----------- |
+| `KOMMO_BASE_URL`            | URL da conta Kommo (`https://<subdominio>.kommo.com`)        | —           |
+| `KOMMO_ACCESS_TOKEN`        | Token de acesso (integração privada ou OAuth2)               | —           |
+| `KOMMO_TIMEOUT_MS`          | Timeout de cada requisição ao Kommo                          | `15000`     |
+| `KOMMO_MAX_RETRIES`         | Retentativas de leituras em `429`/`5xx`                      | `3`         |
+| `KOMMO_REQUESTS_PER_SECOND` | Limite coordenado de chamadas por processo (máximo 6)        | `6`         |
+| `KOMMO_TIMEZONE`            | Fuso IANA dos relatórios; por padrão usa o fuso da conta     | conta Kommo |
+| `PORT`                      | Porta HTTP do servidor MCP                                   | `3001`      |
+| `MCP_HOST`                  | Host de binding                                              | `127.0.0.1` |
+| `MCP_ALLOWED_ORIGINS`       | Origens permitidas (separadas por vírgula)                   | —           |
+| `MCP_AUTH_TOKEN`            | Protege `/mcp`; obrigatório quando `MCP_HOST` não é loopback | —           |
+| `MCP_CONFIRM_WRITES`        | Exige `confirm=true` nas tools que alteram dados             | `false`     |
+| `LOG_LEVEL`                 | Nível de log                                                 | `info`      |
 
 ## Execução
 
@@ -110,6 +115,13 @@ npm install
 npm run dev        # ts-node
 # ou
 npm run build && npm start
+```
+
+**Cliente local via stdio:**
+
+```bash
+npm run build
+npm run start:stdio
 ```
 
 **Docker:**
@@ -136,6 +148,25 @@ docker run -d -p 3001:3001 \
 
 ### Cursor
 
+Para execução local por `stdio`, adicione ao `~/.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "kommo": {
+      "command": "npx",
+      "args": ["-y", "kommo-mcp-server@3.0.0"],
+      "env": {
+        "KOMMO_BASE_URL": "https://seu-dominio.kommo.com",
+        "KOMMO_ACCESS_TOKEN": "seu-token-aqui"
+      }
+    }
+  }
+}
+```
+
+Para o servidor HTTP:
+
 Adicione ao arquivo `~/.cursor/mcp.json` (ou nas configurações do projeto em
 `.cursor/mcp.json`):
 
@@ -155,9 +186,9 @@ Para uma implantação remota com HTTPS, abra **Settings → Connectors → Add
 connector** e informe a URL pública do endpoint, por exemplo
 `https://mcp.seudominio.com/mcp`.
 
-O Claude Desktop não conecta servidores HTTP remotos configurados diretamente
-em `claude_desktop_config.json`. Esse arquivo é destinado a servidores locais
-executados como processos; o Kommo MCP oferece atualmente transporte HTTP.
+Para execução local, use a mesma configuração `command`/`args`/`env` acima no
+`claude_desktop_config.json`. Servidores HTTP remotos devem ser adicionados
+pela tela de Connectors.
 
 ## Endpoints
 
@@ -253,6 +284,7 @@ src/
 ├── kommo-api.ts             # Cliente da API Kommo
 ├── ask-kommo.ts             # Lógica conversacional ask_kommo
 ├── http-streamable.ts       # Servidor MCP HTTP
+├── stdio.ts                 # Servidor MCP local por stdin/stdout
 └── mcp/
     ├── server.ts            # Definição oficial do servidor MCP
     ├── types.ts             # Tipos MCP
@@ -282,8 +314,8 @@ await client.connect(transport);
 const { tools } = await client.listTools();
 ```
 
-Clientes limitados ao lifecycle MCP de 2024/2025 recebem o erro
-`-32022 Unsupported protocol version` e precisam ser atualizados.
+Clientes da família 2025 são atendidos automaticamente pelo modo stateless.
+Clientes modernos podem fixar `2026-07-28` conforme o exemplo acima.
 
 ## Troubleshooting
 
@@ -297,8 +329,9 @@ Clientes limitados ao lifecycle MCP de 2024/2025 recebem o erro
   enviar `Authorization: Bearer <token>` ou `X-API-Key: <token>`.
 - **`503` no `/ready`** — configure `KOMMO_BASE_URL` com HTTPS e defina
   `KOMMO_ACCESS_TOKEN` antes de iniciar o serviço real.
-- **`429` do Kommo** — leituras são repetidas com backoff e `Retry-After`;
-  escritas não são repetidas automaticamente para evitar duplicidade.
+- **`429` do Kommo** — todas as chamadas compartilham um limitador coordenado;
+  leituras usam backoff e `Retry-After`, enquanto escritas não são repetidas
+  automaticamente para evitar duplicidade.
 - **Docker `HEALTHCHECK` falha** — a imagem usa `node --eval` para o
   healthcheck, verifique se a porta interna corresponde a `PORT`.
 - **Erros de build TypeScript** — rode `npm run typecheck` para ver mensagens
@@ -315,17 +348,19 @@ Clientes limitados ao lifecycle MCP de 2024/2025 recebem o erro
 - [CHANGELOG.md](CHANGELOG.md) deste projeto
 - [ROADMAP.md](ROADMAP.md) — prioridades e oportunidades de contribuição
 - [MAINTAINERS.md](MAINTAINERS.md) — manutenção, revisão e releases
+- [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) — matriz automatizada e
+  checklist de validação manual em clientes MCP
 
 ## Compatibilidade e suporte
 
-| Componente     | Suporte atual                                  |
-| -------------- | ---------------------------------------------- |
-| Node.js        | 20 e 22                                        |
-| Protocolo MCP  | somente `2026-07-28`                           |
-| Transporte     | Streamable HTTP oficial; respostas JSON ou SSE |
-| Cursor         | Configuração HTTP documentada                  |
-| Claude Desktop | Conector remoto via Settings → Connectors      |
-| Instalação     | Git/Docker; ainda não publicado no npm         |
+| Componente     | Suporte atual                          |
+| -------------- | -------------------------------------- |
+| Node.js        | 20 e 22                                |
+| Protocolo MCP  | `2026-07-28` e família 2025 stateless  |
+| Transporte     | Streamable HTTP e stdio oficiais       |
+| Cursor         | stdio local ou HTTP                    |
+| Claude Desktop | stdio local ou conector remoto         |
+| Instalação     | Git, Docker e pacote npm na release v3 |
 
 Suporte comunitário ocorre por Issues e Discussions, sem garantia de tempo de
 resposta. Veja as responsabilidades em [MAINTAINERS.md](MAINTAINERS.md).

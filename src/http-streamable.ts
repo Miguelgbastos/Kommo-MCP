@@ -35,6 +35,12 @@ export function validateRuntimeConfig(env: NodeJS.ProcessEnv = process.env): str
     }
   }
   if (!env.KOMMO_ACCESS_TOKEN) issues.push('KOMMO_ACCESS_TOKEN is required');
+  if (env.KOMMO_REQUESTS_PER_SECOND) {
+    const requestsPerSecond = Number(env.KOMMO_REQUESTS_PER_SECOND);
+    if (!Number.isFinite(requestsPerSecond) || requestsPerSecond <= 0 || requestsPerSecond > 6) {
+      issues.push('KOMMO_REQUESTS_PER_SECOND must be greater than 0 and at most 6');
+    }
+  }
   if (env.KOMMO_TIMEZONE) {
     try {
       new Intl.DateTimeFormat('en-US', { timeZone: env.KOMMO_TIMEZONE }).format();
@@ -87,6 +93,7 @@ export function createApp(options: AppOptions = {}) {
       timeoutMs: Number(process.env.KOMMO_TIMEOUT_MS) || 15_000,
       maxRetries: Number(process.env.KOMMO_MAX_RETRIES) || 3,
       timezone: process.env.KOMMO_TIMEZONE,
+      requestsPerSecond: Number(process.env.KOMMO_REQUESTS_PER_SECOND) || 6,
     });
   const logger = {
     error: (message: string, error?: unknown) => {
@@ -104,7 +111,7 @@ export function createApp(options: AppOptions = {}) {
   }
 
   const mcpHandler = createMcpHandler(() => createKommoMcpServer(kommoAPI), {
-    legacy: 'reject',
+    legacy: 'stateless',
     onerror: (error) => logger.error('MCP request failed', error),
   });
   const nodeHandler = toNodeHandler(mcpHandler, {
@@ -134,6 +141,7 @@ export function createApp(options: AppOptions = {}) {
       timestamp: new Date().toISOString(),
       version: SERVER_VERSION,
       protocol_version: MODERN_MCP_PROTOCOL_VERSION,
+      legacy_protocol_compatibility: true,
       tools_count: MCP_TOOLS.length,
       resources_count: MCP_RESOURCES.length,
       prompts_count: MCP_PROMPTS.length,
