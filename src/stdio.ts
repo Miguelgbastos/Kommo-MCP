@@ -16,10 +16,10 @@ export function startStdioServer() {
   const kommoAPI = new KommoAPI({
     baseUrl: process.env.KOMMO_BASE_URL!,
     accessToken: process.env.KOMMO_ACCESS_TOKEN!,
-    timeoutMs: Number(process.env.KOMMO_TIMEOUT_MS) || 15_000,
-    maxRetries: Number(process.env.KOMMO_MAX_RETRIES) || 3,
+    timeoutMs: Number(process.env.KOMMO_TIMEOUT_MS ?? 15_000),
+    maxRetries: Number(process.env.KOMMO_MAX_RETRIES ?? 3),
     timezone: process.env.KOMMO_TIMEZONE,
-    requestsPerSecond: Number(process.env.KOMMO_REQUESTS_PER_SECOND) || 6,
+    requestsPerSecond: Number(process.env.KOMMO_REQUESTS_PER_SECOND ?? 6),
   });
 
   return serveStdio(() => createKommoMcpServer(kommoAPI), {

@@ -3,6 +3,13 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import { KommoAPI, parseRetryAfter } from '../dist/kommo-api.js';
 
+test('rejects unsafe retry and timeout configuration', () => {
+  const baseConfig = { baseUrl: 'https://example.kommo.com', accessToken: 'token' };
+  assert.throws(() => new KommoAPI({ ...baseConfig, timeoutMs: 0 }), /positive integer/);
+  assert.throws(() => new KommoAPI({ ...baseConfig, maxRetries: -1 }), /between 0 and 10/);
+  assert.doesNotThrow(() => new KommoAPI({ ...baseConfig, maxRetries: 0 }));
+});
+
 async function withServer(context, handler) {
   const server = http.createServer(handler);
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));

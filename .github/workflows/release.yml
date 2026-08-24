@@ -4,48 +4,93 @@ on:
   push:
     tags: ['v*']
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
-  contents: write
-  packages: write
-  id-token: write
+  contents: read
 
 jobs:
-  publish:
+  validate:
+    name: Validate release
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.x
+          cache: npm
+      - name: Verify tag matches package version
+        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - name: Install dependencies
+        run: npm ci
+      - name: Validate source and package
+        run: |
+          npm run typecheck
+          npm run lint
+          npm run format:check
+          npm test
+          npm run test:coverage
+          npm run audit:prod
+          npm pack --dry-run
+
+  publish-npm:
+    name: Publish npm package
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     env:
       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22.x
           registry-url: https://registry.npmjs.org
           cache: npm
-
-      - name: Install and validate
-        run: npm ci && npm test && npm run audit:prod && npm pack --dry-run
-
-      - name: Verify tag matches package version
-        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
-
+      - name: Install dependencies
+        run: npm ci
       - name: Require npm publishing credentials
         run: test -n "$NODE_AUTH_TOKEN"
-
       - name: Publish npm with provenance
         run: npm publish --provenance --access public
+      - name: Smoke test published package
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          smoke_dir="$(mktemp -d)"
+          cd "$smoke_dir"
+          npm init -y >/dev/null
+          npm install --ignore-scripts "kommo-mcp-server@$version"
+          node --input-type=module -e "await import('kommo-mcp-server')"
+          test -x node_modules/.bin/kommo-mcp-server
 
+  publish-container:
+    name: Publish container image
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
       - name: Login to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-
-      - name: Build and publish Docker image with SBOM and provenance
+      - name: Build and publish with SBOM and provenance
         run: |
           image="ghcr.io/${GITHUB_REPOSITORY,,}"
           version="${GITHUB_REF_NAME#v}"
           minor="${version%.*}"
-          docker buildx create --use
           docker buildx build \
             --push \
             --provenance=true \
@@ -54,8 +99,31 @@ jobs:
             --tag "$image:$minor" \
             --tag "$image:latest" \
             .
+      - name: Smoke test published image
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_REF_NAME#v}"
+          container="$(docker run -d \
+            -e KOMMO_BASE_URL=https://example.kommo.com \
+            -e KOMMO_ACCESS_TOKEN=release-smoke-test \
+            -e MCP_AUTH_TOKEN=release-smoke-test \
+            "$image")"
+          trap 'docker logs "$container"; docker rm -f "$container"' EXIT
+          for attempt in {1..15}; do
+            status="$(docker inspect --format '{{.State.Health.Status}}' "$container")"
+            test "$status" = healthy && exit 0
+            test "$status" = unhealthy && exit 1
+            sleep 2
+          done
+          exit 1
 
-      - name: Create GitHub release notes
-        run: gh release view "$GITHUB_REF_NAME" || gh release create "$GITHUB_REF_NAME" --generate-notes --title "Kommo MCP Server $GITHUB_REF_NAME"
+  create-release:
+    name: Create GitHub release
+    needs: [publish-npm, publish-container]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create release notes
+        run: gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" || gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --generate-notes --title "Kommo MCP Server $GITHUB_REF_NAME"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

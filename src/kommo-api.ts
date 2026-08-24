@@ -328,7 +328,14 @@ export class KommoAPI {
     if (config.timezone) assertTimezone(config.timezone);
     this.configuredTimezone = config.timezone;
     const maxRetries = config.maxRetries ?? 3;
+    const timeoutMs = config.timeoutMs ?? 15_000;
     const requestsPerSecond = config.requestsPerSecond ?? 6;
+    if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) {
+      throw new Error('timeoutMs must be a positive integer');
+    }
+    if (!Number.isInteger(maxRetries) || maxRetries < 0 || maxRetries > 10) {
+      throw new Error('maxRetries must be an integer between 0 and 10');
+    }
     if (!Number.isFinite(requestsPerSecond) || requestsPerSecond <= 0 || requestsPerSecond > 6) {
       throw new Error('requestsPerSecond must be greater than 0 and at most 6');
     }
@@ -347,7 +354,7 @@ export class KommoAPI {
     rateLimitStates.set(config.baseUrl, this.rateLimitState);
     this.client = axios.create({
       baseURL: config.baseUrl,
-      timeout: config.timeoutMs ?? 15_000,
+      timeout: timeoutMs,
       headers: {
         Authorization: `Bearer ${config.accessToken}`,
         'Content-Type': 'application/json',
