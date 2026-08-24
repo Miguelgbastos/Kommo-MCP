@@ -75,6 +75,7 @@ npm run dev        # executa via ts-node
 npm start          # executa o servidor compilado
 npm run typecheck  # apenas verificação de tipos
 npm test           # build e testes automatizados
+npm run test:coverage # cobertura mínima do código de produção
 npm run audit:prod # vulnerabilidades de produção
 ```
 
@@ -101,6 +102,7 @@ src/
 ├── kommo-api.ts          # Cliente HTTP da API Kommo
 ├── ask-kommo.ts          # Lógica conversacional do tool ask_kommo
 ├── http-streamable.ts    # Servidor MCP HTTP (Streamable HTTP)
+├── stdio.ts              # Servidor MCP local por stdin/stdout
 └── mcp/
     ├── server.ts             # Registro oficial de tools/resources/prompts
     ├── types.ts             # Tipos internos do MCP

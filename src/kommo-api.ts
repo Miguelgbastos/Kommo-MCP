@@ -6,6 +6,7 @@ export interface KommoConfig {
   timeoutMs?: number;
   maxRetries?: number;
   timezone?: string;
+  requestsPerSecond?: number;
 }
 
 interface CalendarDate {
@@ -102,6 +103,15 @@ function zonedCalendarDate(instant: Date, timezone: string): CalendarDate {
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
   retryCount?: number;
 }
+
+interface RateLimitState {
+  queue: Promise<void>;
+  nextRequestAt: number;
+  cooldownUntil: number;
+  minimumIntervalMs: number;
+}
+
+const rateLimitStates = new Map<string, RateLimitState>();
 
 export function parseRetryAfter(value: unknown, now = Date.now()): number | undefined {
   if (typeof value !== 'string' && typeof value !== 'number') return undefined;
@@ -312,11 +322,29 @@ export interface KommoDashboardData {
 export class KommoAPI {
   private client: AxiosInstance;
   private configuredTimezone?: string;
+  private rateLimitState: RateLimitState;
 
   constructor(config: KommoConfig) {
     if (config.timezone) assertTimezone(config.timezone);
     this.configuredTimezone = config.timezone;
     const maxRetries = config.maxRetries ?? 3;
+    const requestsPerSecond = config.requestsPerSecond ?? 6;
+    if (!Number.isFinite(requestsPerSecond) || requestsPerSecond <= 0 || requestsPerSecond > 6) {
+      throw new Error('requestsPerSecond must be greater than 0 and at most 6');
+    }
+    const minimumIntervalMs = Math.ceil(1_000 / requestsPerSecond);
+    const existingRateLimitState = rateLimitStates.get(config.baseUrl);
+    this.rateLimitState = existingRateLimitState ?? {
+      queue: Promise.resolve(),
+      nextRequestAt: 0,
+      cooldownUntil: 0,
+      minimumIntervalMs,
+    };
+    this.rateLimitState.minimumIntervalMs = Math.max(
+      this.rateLimitState.minimumIntervalMs,
+      minimumIntervalMs,
+    );
+    rateLimitStates.set(config.baseUrl, this.rateLimitState);
     this.client = axios.create({
       baseURL: config.baseUrl,
       timeout: config.timeoutMs ?? 15_000,
@@ -324,6 +352,18 @@ export class KommoAPI {
         Authorization: `Bearer ${config.accessToken}`,
         'Content-Type': 'application/json',
       },
+    });
+    this.client.interceptors.request.use(async (request) => {
+      const scheduled = this.rateLimitState.queue.then(async () => {
+        const waitMs =
+          Math.max(0, this.rateLimitState.nextRequestAt, this.rateLimitState.cooldownUntil) -
+          Date.now();
+        if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
+        this.rateLimitState.nextRequestAt = Date.now() + this.rateLimitState.minimumIntervalMs;
+      });
+      this.rateLimitState.queue = scheduled.catch(() => undefined);
+      await scheduled;
+      return request;
     });
     this.client.interceptors.response.use(undefined, async (error: unknown) => {
       if (!axios.isAxiosError(error) || !error.config) throw error;
@@ -333,12 +373,18 @@ export class KommoAPI {
       const retryableMethod = ['GET', 'HEAD', 'OPTIONS'].includes(method);
       const retryableFailure =
         status === 429 || status === 502 || status === 503 || status === 504 || !error.response;
+      const retryAfter = error.response?.headers['retry-after'];
+      const retryAfterMs = parseRetryAfter(retryAfter);
+      if (status === 429 && retryAfterMs !== undefined) {
+        this.rateLimitState.cooldownUntil = Math.max(
+          this.rateLimitState.cooldownUntil,
+          Date.now() + retryAfterMs,
+        );
+      }
       request.retryCount = request.retryCount ?? 0;
       if (!retryableMethod || !retryableFailure || request.retryCount >= maxRetries) throw error;
 
       request.retryCount += 1;
-      const retryAfter = error.response?.headers['retry-after'];
-      const retryAfterMs = parseRetryAfter(retryAfter);
       const backoffMs = Math.min(250 * 2 ** (request.retryCount - 1), 4_000);
       const jitterMs = Math.floor(Math.random() * 100);
       await new Promise((resolve) => setTimeout(resolve, retryAfterMs ?? backoffMs + jitterMs));

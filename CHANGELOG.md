@@ -25,6 +25,11 @@ e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Anotações MCP de risco e confirmação opcional para operações de escrita.
 - Testes de contrato HTTP da API Kommo e cobertura de todas as tools anunciadas.
 - Workflow de release para imagem GHCR com SBOM/provenance e publicação npm opcional.
+- Transporte local `stdio` e executável `kommo-mcp-server` para instalação npm.
+- Compatibilidade stateless com clientes MCP da família 2025.
+- Limitador coordenado de requisições ao Kommo por processo.
+- Cobertura do código de produção medida no CI com pisos explícitos para
+  linhas, branches e funções, compatíveis com Node 20 e 22.
 
 ### Modificado
 
@@ -40,7 +45,8 @@ e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
   volta a proibir `any` em todo código-fonte.
 - Instruções atuais para conectores remotos do Claude Desktop.
 - Servidor migrado integralmente para o SDK MCP oficial v2 e para a revisão
-  `2026-07-28`; clientes legados agora são rejeitados explicitamente.
+  `2026-07-28`, preservando compatibilidade stateless com clientes da família 2025.
+- Release passa a exigir credenciais npm e publica tags Docker exatas, minor e `latest`.
 - Versão preparada para `3.0.0` devido à quebra de compatibilidade do protocolo.
 - Relatórios e dashboard passaram a ser calculados com endpoints públicos
   documentados de leads, pipelines, usuários e tarefas.

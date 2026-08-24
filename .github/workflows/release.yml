@@ -31,8 +31,10 @@ jobs:
       - name: Verify tag matches package version
         run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
 
+      - name: Require npm publishing credentials
+        run: test -n "$NODE_AUTH_TOKEN"
+
       - name: Publish npm with provenance
-        if: ${{ env.NODE_AUTH_TOKEN != '' }}
         run: npm publish --provenance --access public
 
       - name: Login to GitHub Container Registry
@@ -42,12 +44,14 @@ jobs:
         run: |
           image="ghcr.io/${GITHUB_REPOSITORY,,}"
           version="${GITHUB_REF_NAME#v}"
+          minor="${version%.*}"
           docker buildx create --use
           docker buildx build \
             --push \
             --provenance=true \
             --sbom=true \
             --tag "$image:$version" \
+            --tag "$image:$minor" \
             --tag "$image:latest" \
             .
 

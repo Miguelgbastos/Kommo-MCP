@@ -3,16 +3,17 @@ import assert from 'node:assert/strict';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { createApp } from '../dist/http-streamable.js';
 
-async function verifyDiscovery(url, createLeadCalls) {
+async function verifyDiscovery(url, createLeadCalls, versionNegotiation) {
+  const initialCreateLeadCalls = createLeadCalls.length;
   const client = new Client(
     { name: 'kommo-mcp-modern-test', version: '1.0.0' },
-    { versionNegotiation: { mode: { pin: '2026-07-28' } } },
+    versionNegotiation ? { versionNegotiation } : undefined,
   );
   const transport = new StreamableHTTPClientTransport(url);
 
   try {
     await client.connect(transport);
-    assert.equal(client.getProtocolEra(), 'modern');
+    assert.equal(client.getProtocolEra(), versionNegotiation ? 'modern' : 'legacy');
     assert.equal(client.getServerVersion()?.name, 'kommo-mcp-server');
 
     const [{ tools }, { resources }, { prompts }] = await Promise.all([
@@ -44,7 +45,8 @@ async function verifyDiscovery(url, createLeadCalls) {
       arguments: { name: 'Teste', confirm: true },
     });
     assert.equal(created.isError, undefined);
-    assert.deepEqual(createLeadCalls, [{ name: 'Teste' }]);
+    assert.equal(createLeadCalls.length, initialCreateLeadCalls + 1);
+    assert.deepEqual(createLeadCalls.at(-1), { name: 'Teste' });
   } finally {
     await client.close();
   }
@@ -75,5 +77,6 @@ test('official MCP client discovers capabilities with protocol 2026-07-28', asyn
   assert.ok(address && typeof address === 'object');
   const url = new URL(`http://127.0.0.1:${address.port}/mcp`);
 
+  await verifyDiscovery(url, createLeadCalls, { mode: { pin: '2026-07-28' } });
   await verifyDiscovery(url, createLeadCalls);
 });

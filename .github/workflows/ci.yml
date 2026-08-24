@@ -43,11 +43,17 @@ jobs:
       - name: Tests
         run: npm test
 
+      - name: Coverage threshold
+        run: npm run test:coverage
+
       - name: Production dependency audit
         run: npm run audit:prod
 
       - name: Build
         run: npm run build
+
+      - name: Validate npm package contents
+        run: npm pack --dry-run
 
   docker:
     name: Docker build

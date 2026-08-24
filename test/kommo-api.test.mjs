@@ -59,6 +59,31 @@ test('GET requests retry a 429 and honor Retry-After', async (context) => {
   assert.equal(parseRetryAfter('2'), 2000);
 });
 
+test('coordinates concurrent requests below the configured process rate', async (context) => {
+  const receivedAt = [];
+  const baseUrl = await withServer(context, (_request, response) => {
+    receivedAt.push(Date.now());
+    response.writeHead(200, { 'Content-Type': 'application/json' }).end('{"id":1,"name":"Conta"}');
+  });
+  const firstApi = new KommoAPI({
+    baseUrl,
+    accessToken: 'test',
+    maxRetries: 0,
+    requestsPerSecond: 5,
+  });
+  const secondApi = new KommoAPI({
+    baseUrl,
+    accessToken: 'test',
+    maxRetries: 0,
+    requestsPerSecond: 5,
+  });
+
+  await Promise.all([firstApi.getAccount(), secondApi.getAccount()]);
+
+  assert.equal(receivedAt.length, 2);
+  assert.ok(receivedAt[1] - receivedAt[0] >= 180);
+});
+
 test('pagination failures are propagated instead of returning partial totals', async (context) => {
   const baseUrl = await withServer(context, (request, response) => {
     const page = new URL(request.url, baseUrl).searchParams.get('page');

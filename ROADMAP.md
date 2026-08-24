@@ -6,12 +6,13 @@ Este roadmap orienta contribuições; não representa compromisso de prazo.
 
 - Validar Cursor e Claude Desktop de ponta a ponta e registrar versões testadas.
 - Validar a revisão MCP `2026-07-28` com mais clientes da comunidade.
+- Validar o transporte `stdio` e a compatibilidade stateless da família 2025.
 - Publicar a release `v3.0.0` após validação em uma conta Kommo de teste.
 
 ## Próximo
 
-- Adicionar transporte `stdio` para clientes locais.
-- Publicar o pacote no npm após validar nome, conteúdo e provenance.
+- Publicar o pacote no npm e a imagem no GHCR após validar conteúdo e provenance.
+- Adicionar cobertura automatizada e smoke test da imagem publicada.
 
 ## Futuro
 

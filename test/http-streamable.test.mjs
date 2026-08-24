@@ -43,17 +43,24 @@ test('runtime configuration requires a valid HTTPS URL and token', () => {
     validateRuntimeConfig({ KOMMO_BASE_URL: 'https://example.kommo.com', KOMMO_ACCESS_TOKEN: 'x' }),
     [],
   );
+  assert.deepEqual(
+    validateRuntimeConfig({
+      KOMMO_BASE_URL: 'https://example.kommo.com',
+      KOMMO_ACCESS_TOKEN: 'x',
+      KOMMO_REQUESTS_PER_SECOND: '7',
+    }),
+    ['KOMMO_REQUESTS_PER_SECOND must be greater than 0 and at most 6'],
+  );
 });
 
-test('rejects legacy clients and advertises the modern protocol', async () => {
+test('serves 2025-era clients through stateless compatibility', async () => {
   const app = createApp({ logLevel: 'silent' });
   const response = await request(app)
     .post('/mcp')
     .set('Accept', accept)
     .send(legacyInitialize())
-    .expect(400);
-  assert.equal(response.body.error.code, -32022);
-  assert.deepEqual(response.body.error.data.supported, ['2026-07-28']);
+    .expect(200);
+  assert.match(response.text, /2025-11-25/);
 });
 
 test('rejects non-JSON MCP requests', async () => {
@@ -79,5 +86,5 @@ test('blocks untrusted browser origins and enforces configured auth', async () =
     .set('Accept', accept)
     .set('Authorization', 'Bearer test-secret')
     .send(payload)
-    .expect(400);
+    .expect(200);
 });
