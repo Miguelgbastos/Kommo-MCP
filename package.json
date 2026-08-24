@@ -19,8 +19,8 @@
     "audit:prod": "npm audit --omit=dev --audit-level=high",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\" --max-warnings=0",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.mjs\" \".github/**/*.yml\" \"*.{md,json,yml}\"",
-    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.mjs\" \".github/**/*.yml\" \"*.{md,json,yml}\""
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.mjs\" \".github/**/*.yml\" \"eslint.config.js\" \"*.{md,json,yml}\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.mjs\" \".github/**/*.yml\" \"eslint.config.js\" \"*.{md,json,yml}\""
   },
   "keywords": [
     "mcp",
@@ -67,6 +67,7 @@
     "zod": "^4.2.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@modelcontextprotocol/client": "^2.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
@@ -75,10 +76,11 @@
     "@typescript-eslint/eslint-plugin": "^8.67.0",
     "@typescript-eslint/parser": "^8.67.0",
     "c8": "^12.0.0",
-    "eslint": "^8.57.1",
+    "eslint": "^10.9.0",
+    "globals": "^17.11.0",
     "prettier": "^3.3.3",
     "supertest": "^7.1.4",
     "ts-node": "^10.9.0",
-    "typescript": "^7.0.2"
+    "typescript": "^6.0.3"
   }
 }
