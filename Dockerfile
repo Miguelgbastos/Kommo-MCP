@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Build stage
-FROM node:20-slim AS builder
+FROM node:24-slim AS builder
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ COPY tsconfig.json ./
 RUN npm run build
 
 # Production stage
-FROM node:20-slim AS production
+FROM node:24-slim AS production
 
 ENV NODE_ENV=production \
     PORT=3001 \

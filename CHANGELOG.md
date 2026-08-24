@@ -29,7 +29,9 @@ e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Compatibilidade stateless com clientes MCP da família 2025.
 - Limitador coordenado de requisições ao Kommo por processo.
 - Cobertura do código de produção medida no CI com pisos explícitos para
-  linhas, branches e funções, compatíveis com Node 20 e 22.
+  linhas, branches e funções, compatíveis com Node 22 e 24.
+- Análise CodeQL semanal e em Pull Requests.
+- Smoke tests do pacote npm e da imagem GHCR após a publicação.
 
 ### Modificado
 
@@ -52,6 +54,10 @@ e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
   documentados de leads, pipelines, usuários e tarefas.
 - Payloads de iniciar e parar Salesbot corrigidos conforme a API v4 oficial.
 - Falhas de paginação agora interrompem a operação em vez de retornar totais parciais.
+- Tipos de Node alinhados ao menor runtime suportado e requisitos de desenvolvimento documentados.
+- Workflow de release dividido em validação, npm, GHCR e criação da GitHub Release.
+- Timeout e número de retentativas agora rejeitam configurações inválidas.
+- Runtime mínimo atualizado para Node 22.13; a imagem oficial passa a usar Node 24 LTS.
 
 ### Removido
 

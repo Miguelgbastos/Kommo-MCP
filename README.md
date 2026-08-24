@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/Miguelgbastos/Kommo-MCP/actions/workflows/ci.yml/badge.svg)](https://github.com/Miguelgbastos/Kommo-MCP/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22.13-brightgreen.svg)](package.json)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
@@ -58,7 +58,7 @@ Desktop, etc.).
 
 ## Pré-requisitos
 
-- Node.js **20+**
+- Node.js **22.13+**
 - Docker (opcional)
 - Token de acesso do Kommo (integração privada ou OAuth2) —
   ver [documentação do Kommo](https://pt-developers.kommo.com/docs/kommo-para-desenvolvedores)
@@ -148,14 +148,15 @@ docker run -d -p 3001:3001 \
 
 ### Cursor
 
-Para execução local por `stdio`, adicione ao `~/.cursor/mcp.json`:
+O pacote npm ainda não foi publicado. Até a release v3, compile o projeto e
+adicione ao `~/.cursor/mcp.json` o caminho absoluto do arquivo gerado:
 
 ```json
 {
   "mcpServers": {
     "kommo": {
-      "command": "npx",
-      "args": ["-y", "kommo-mcp-server@3.0.0"],
+      "command": "node",
+      "args": ["/caminho/absoluto/Kommo-MCP/dist/stdio.js"],
       "env": {
         "KOMMO_BASE_URL": "https://seu-dominio.kommo.com",
         "KOMMO_ACCESS_TOKEN": "seu-token-aqui"
@@ -335,7 +336,7 @@ Clientes modernos podem fixar `2026-07-28` conforme o exemplo acima.
 - **Docker `HEALTHCHECK` falha** — a imagem usa `node --eval` para o
   healthcheck, verifique se a porta interna corresponde a `PORT`.
 - **Erros de build TypeScript** — rode `npm run typecheck` para ver mensagens
-  detalhadas. Requer Node.js 20+.
+  detalhadas. Requer Node.js 22.13+.
 
 ## Documentação
 
@@ -353,14 +354,14 @@ Clientes modernos podem fixar `2026-07-28` conforme o exemplo acima.
 
 ## Compatibilidade e suporte
 
-| Componente     | Suporte atual                          |
-| -------------- | -------------------------------------- |
-| Node.js        | 20 e 22                                |
-| Protocolo MCP  | `2026-07-28` e família 2025 stateless  |
-| Transporte     | Streamable HTTP e stdio oficiais       |
-| Cursor         | stdio local ou HTTP                    |
-| Claude Desktop | stdio local ou conector remoto         |
-| Instalação     | Git, Docker e pacote npm na release v3 |
+| Componente     | Suporte atual                         |
+| -------------- | ------------------------------------- |
+| Node.js        | 22.13+; CI em Node 22 e 24            |
+| Protocolo MCP  | `2026-07-28` e família 2025 stateless |
+| Transporte     | Streamable HTTP e stdio oficiais      |
+| Cursor         | stdio local ou HTTP                   |
+| Claude Desktop | stdio local ou conector remoto        |
+| Instalação     | Git e Docker; npm após a release v3   |
 
 Suporte comunitário ocorre por Issues e Discussions, sem garantia de tempo de
 resposta. Veja as responsabilidades em [MAINTAINERS.md](MAINTAINERS.md).

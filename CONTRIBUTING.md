@@ -59,7 +59,7 @@ cd Kommo-MCP
 
 ### 2. Instalação
 
-Requer **Node.js 20+**.
+Requer **Node.js 22.13+**. A CI valida as linhas Node 22 e 24.
 
 ```bash
 npm install

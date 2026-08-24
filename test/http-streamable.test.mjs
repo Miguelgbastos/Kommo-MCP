@@ -53,6 +53,20 @@ test('runtime configuration requires a valid HTTPS URL and token', () => {
   );
 });
 
+test('runtime configuration rejects unsafe numeric settings and accepts zero retries', () => {
+  const required = {
+    KOMMO_BASE_URL: 'https://example.kommo.com',
+    KOMMO_ACCESS_TOKEN: 'x',
+  };
+  assert.deepEqual(validateRuntimeConfig({ ...required, KOMMO_TIMEOUT_MS: '-1' }), [
+    'KOMMO_TIMEOUT_MS must be a positive integer',
+  ]);
+  assert.deepEqual(validateRuntimeConfig({ ...required, KOMMO_MAX_RETRIES: '11' }), [
+    'KOMMO_MAX_RETRIES must be an integer between 0 and 10',
+  ]);
+  assert.deepEqual(validateRuntimeConfig({ ...required, KOMMO_MAX_RETRIES: '0' }), []);
+});
+
 test('serves 2025-era clients through stateless compatibility', async () => {
   const app = createApp({ logLevel: 'silent' });
   const response = await request(app)

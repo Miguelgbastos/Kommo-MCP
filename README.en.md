@@ -9,19 +9,25 @@ protocol family, Streamable HTTP and local stdio.
 
 ## Local installation
 
-Requires Node.js 20 or newer.
+The npm package has not been published yet. Until the v3 release, install it
+from source. Node.js 22.13 or newer is required.
 
 ```bash
-npm install -g kommo-mcp-server@3.0.0
+git clone https://github.com/Miguelgbastos/Kommo-MCP.git
+cd Kommo-MCP
+npm ci
+npm run build
 ```
 
-Configure your MCP client to run:
+Configure your MCP client to run the compiled stdio entrypoint, replacing the
+path below with the absolute path to your clone:
 
 ```json
 {
   "mcpServers": {
     "kommo": {
-      "command": "kommo-mcp-server",
+      "command": "node",
+      "args": ["/absolute/path/to/Kommo-MCP/dist/stdio.js"],
       "env": {
         "KOMMO_BASE_URL": "https://your-account.kommo.com",
         "KOMMO_ACCESS_TOKEN": "your-token"

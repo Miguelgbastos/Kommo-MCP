@@ -35,6 +35,18 @@ export function validateRuntimeConfig(env: NodeJS.ProcessEnv = process.env): str
     }
   }
   if (!env.KOMMO_ACCESS_TOKEN) issues.push('KOMMO_ACCESS_TOKEN is required');
+  if (env.KOMMO_TIMEOUT_MS) {
+    const timeoutMs = Number(env.KOMMO_TIMEOUT_MS);
+    if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) {
+      issues.push('KOMMO_TIMEOUT_MS must be a positive integer');
+    }
+  }
+  if (env.KOMMO_MAX_RETRIES) {
+    const maxRetries = Number(env.KOMMO_MAX_RETRIES);
+    if (!Number.isInteger(maxRetries) || maxRetries < 0 || maxRetries > 10) {
+      issues.push('KOMMO_MAX_RETRIES must be an integer between 0 and 10');
+    }
+  }
   if (env.KOMMO_REQUESTS_PER_SECOND) {
     const requestsPerSecond = Number(env.KOMMO_REQUESTS_PER_SECOND);
     if (!Number.isFinite(requestsPerSecond) || requestsPerSecond <= 0 || requestsPerSecond > 6) {
@@ -90,10 +102,10 @@ export function createApp(options: AppOptions = {}) {
     new KommoAPI({
       baseUrl: process.env.KOMMO_BASE_URL || 'https://api-g.kommo.com',
       accessToken: process.env.KOMMO_ACCESS_TOKEN || '',
-      timeoutMs: Number(process.env.KOMMO_TIMEOUT_MS) || 15_000,
-      maxRetries: Number(process.env.KOMMO_MAX_RETRIES) || 3,
+      timeoutMs: Number(process.env.KOMMO_TIMEOUT_MS ?? 15_000),
+      maxRetries: Number(process.env.KOMMO_MAX_RETRIES ?? 3),
       timezone: process.env.KOMMO_TIMEZONE,
-      requestsPerSecond: Number(process.env.KOMMO_REQUESTS_PER_SECOND) || 6,
+      requestsPerSecond: Number(process.env.KOMMO_REQUESTS_PER_SECOND ?? 6),
     });
   const logger = {
     error: (message: string, error?: unknown) => {
