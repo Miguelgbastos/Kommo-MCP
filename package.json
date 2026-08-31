@@ -81,6 +81,6 @@
     "prettier": "^3.3.3",
     "supertest": "^7.1.4",
     "ts-node": "^10.9.0",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   }
 }
