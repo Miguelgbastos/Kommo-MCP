@@ -228,3 +228,48 @@ test('sales reports use account timezone boundaries and reject impossible dates'
     /datas reais no formato YYYY-MM-DD/,
   );
 });
+
+test('listLeads orders by newest first and applies documented filters', async (context) => {
+  const urls = [];
+  const baseUrl = await withServer(context, (request, response) => {
+    urls.push(request.url);
+    if (request.url.startsWith('/api/v4/account')) {
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ id: 1, name: 'x', subdomain: 'x', timezone: 'UTC' }));
+      return;
+    }
+    response.writeHead(200, { 'content-type': 'application/json' });
+    response.end(JSON.stringify({ _embedded: { leads: [] } }));
+  });
+  const api = new KommoAPI({ baseUrl, accessToken: 'test', maxRetries: 0 });
+
+  await api.listLeads({ limit: 5 });
+  const defaultQuery = decodeURIComponent(urls.at(-1));
+  assert.match(defaultQuery, /order\[created_at\]=desc/);
+  assert.match(defaultQuery, /limit=5/);
+
+  await api.listLeads({ orderBy: 'updated_at', orderDirection: 'asc' });
+  assert.match(decodeURIComponent(urls.at(-1)), /order\[updated_at\]=asc/);
+
+  await api.listLeads({ createdFrom: '2026-09-01', createdTo: '2026-09-01' });
+  const dateQuery = decodeURIComponent(urls.at(-1));
+  const from = Date.UTC(2026, 8, 1) / 1000;
+  assert.match(dateQuery, new RegExp(`filter\\[created_at\\]\\[from\\]=${from}`));
+  // O "to" cobre o dia inteiro: ultimo segundo antes da meia-noite seguinte.
+  assert.match(dateQuery, new RegExp(`filter\\[created_at\\]\\[to\\]=${from + 86399}`));
+
+  await api.listLeads({ pipelineId: 10, statusId: 20 });
+  const statusQuery = decodeURIComponent(urls.at(-1));
+  assert.match(statusQuery, /filter\[statuses\]\[0\]\[pipeline_id\]=10/);
+  assert.match(statusQuery, /filter\[statuses\]\[0\]\[status_id\]=20/);
+
+  await assert.rejects(() => api.listLeads({ statusId: 20 }), /exige pipeline_id/);
+});
+
+test('listLeads returns an empty list when Kommo answers 204', async (context) => {
+  const baseUrl = await withServer(context, (_request, response) => {
+    response.writeHead(204).end();
+  });
+  const api = new KommoAPI({ baseUrl, accessToken: 'test', maxRetries: 0 });
+  assert.deepEqual(await api.listLeads({ query: 'inexistente' }), { _embedded: { leads: [] } });
+});
