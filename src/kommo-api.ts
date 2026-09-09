@@ -123,6 +123,25 @@ export function parseRetryAfter(value: unknown, now = Date.now()): number | unde
 
 export type KommoQueryParams = Record<string, string | number | boolean | undefined>;
 
+export type LeadOrderField = 'created_at' | 'updated_at' | 'id';
+export type SortDirection = 'asc' | 'desc';
+
+export interface LeadListOptions {
+  limit?: number;
+  page?: number;
+  query?: string;
+  orderBy?: LeadOrderField;
+  orderDirection?: SortDirection;
+  createdFrom?: string;
+  createdTo?: string;
+  updatedFrom?: string;
+  updatedTo?: string;
+  pipelineId?: number;
+  statusId?: number;
+  responsibleUserId?: number;
+  withParam?: string;
+}
+
 export interface KommoCustomFieldValue {
   field_id?: number;
   field_name?: string;
@@ -415,6 +434,55 @@ export class KommoAPI {
   async getLeads(params?: KommoQueryParams): Promise<{ _embedded: { leads: KommoLead[] } }> {
     const response = await this.client.get('/api/v4/leads', { params });
     return response.data;
+  }
+
+  private async buildLeadListParams(options: LeadListOptions): Promise<KommoQueryParams> {
+    const params: KommoQueryParams = {
+      limit: options.limit ?? 250,
+      page: options.page ?? 1,
+    };
+    if (options.query) params.query = options.query;
+    if (options.withParam) params.with = options.withParam;
+
+    const orderBy = options.orderBy ?? 'created_at';
+    const orderDirection = options.orderDirection ?? 'desc';
+    params[`order[${orderBy}]`] = orderDirection;
+
+    if (options.createdFrom || options.createdTo || options.updatedFrom || options.updatedTo) {
+      const timezone = this.getBusinessTimezone(await this.getAccount());
+      const startOf = (value: string) => zonedStartOfDay(parseCalendarDate(value), timezone);
+      const endOf = (value: string) =>
+        zonedStartOfDay(addCalendarDays(parseCalendarDate(value), 1), timezone) - 1;
+      if (options.createdFrom) params['filter[created_at][from]'] = startOf(options.createdFrom);
+      if (options.createdTo) params['filter[created_at][to]'] = endOf(options.createdTo);
+      if (options.updatedFrom) params['filter[updated_at][from]'] = startOf(options.updatedFrom);
+      if (options.updatedTo) params['filter[updated_at][to]'] = endOf(options.updatedTo);
+    }
+
+    if (options.responsibleUserId !== undefined) {
+      params['filter[responsible_user_id][]'] = options.responsibleUserId;
+    }
+    // A API exige pipeline_id junto do status_id; sozinho, o status é ignorado em silêncio.
+    if (options.statusId !== undefined) {
+      if (options.pipelineId === undefined) {
+        throw new Error('status_id exige pipeline_id: a API do Kommo ignora o status sozinho.');
+      }
+      params['filter[statuses][0][pipeline_id]'] = options.pipelineId;
+      params['filter[statuses][0][status_id]'] = options.statusId;
+    } else if (options.pipelineId !== undefined) {
+      params['filter[pipeline_id][]'] = options.pipelineId;
+    }
+
+    return params;
+  }
+
+  async listLeads(options: LeadListOptions = {}): Promise<{ _embedded: { leads: KommoLead[] } }> {
+    const params = await this.buildLeadListParams(options);
+    const response = await this.client.get('/api/v4/leads', { params });
+    // O Kommo responde 204 sem corpo quando nenhum lead casa com o filtro.
+    return response.data && typeof response.data === 'object'
+      ? response.data
+      : { _embedded: { leads: [] } };
   }
 
   async getAllLeads(params?: KommoQueryParams): Promise<KommoLead[]> {

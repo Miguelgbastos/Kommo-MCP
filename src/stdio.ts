@@ -7,7 +7,7 @@ import { KommoAPI } from './kommo-api.js';
 import { createKommoMcpServer } from './mcp/server.js';
 import { validateRuntimeConfig } from './http-streamable.js';
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 export function startStdioServer() {
   const configIssues = validateRuntimeConfig();

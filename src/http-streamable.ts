@@ -11,7 +11,7 @@ import { MCP_RESOURCES } from './mcp/resources.js';
 import { MCP_PROMPTS } from './mcp/prompts.js';
 import { createKommoMcpServer } from './mcp/server.js';
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const MODERN_MCP_PROTOCOL_VERSION = '2026-07-28';
 const SERVER_VERSION = '3.0.0';

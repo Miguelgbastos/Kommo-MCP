@@ -27,15 +27,55 @@ test('get_lead delegates the requested ID and serializes the response', async ()
 test('get_leads applies pagination defaults and preserves the query', async () => {
   const calls = [];
   const api = {
-    async getLeads(params) {
-      calls.push(params);
+    async listLeads(options) {
+      calls.push(options);
       return { _embedded: { leads: [] } };
     },
   };
 
   await executeTool(api, 'get_leads', { query: 'Maria' });
 
-  assert.deepEqual(calls, [{ limit: 250, page: 1, query: 'Maria' }]);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].limit, 250);
+  assert.equal(calls[0].page, 1);
+  assert.equal(calls[0].query, 'Maria');
+});
+
+test('get_leads forwards ordering and filters to the API', async () => {
+  const calls = [];
+  const api = {
+    async listLeads(options) {
+      calls.push(options);
+      return { _embedded: { leads: [] } };
+    },
+  };
+
+  await executeTool(api, 'get_leads', {
+    order_by: 'updated_at',
+    order_dir: 'asc',
+    created_from: '2026-09-01',
+    created_to: '2026-09-07',
+    pipeline_id: 10,
+    status_id: 20,
+    responsible_user_id: 5,
+    with: 'contacts',
+  });
+
+  assert.deepEqual(calls[0], {
+    limit: 250,
+    page: 1,
+    query: undefined,
+    orderBy: 'updated_at',
+    orderDirection: 'asc',
+    createdFrom: '2026-09-01',
+    createdTo: '2026-09-07',
+    updatedFrom: undefined,
+    updatedTo: undefined,
+    pipelineId: 10,
+    statusId: 20,
+    responsibleUserId: 5,
+    withParam: 'contacts',
+  });
 });
 
 test('create_lead forwards only the supplied payload', async () => {
