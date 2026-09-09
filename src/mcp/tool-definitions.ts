@@ -21,12 +21,37 @@ export const MCP_TOOLS: McpToolDefinition[] = [
   {
     name: 'get_leads',
     title: 'Listar leads',
-    description: 'Obter lista de leads do Kommo CRM',
+    description:
+      'Obter lista de leads do Kommo CRM. Por padrão devolve os mais recentes primeiro (created_at desc).',
     inputSchema: {
       type: 'object',
       properties: {
         ...paginationProperties,
         query: { type: 'string', description: 'Filtro de busca (query da API)' },
+        order_by: {
+          type: 'string',
+          enum: ['created_at', 'updated_at', 'id'],
+          description: 'Campo de ordenação (padrão: created_at)',
+        },
+        order_dir: {
+          type: 'string',
+          enum: ['asc', 'desc'],
+          description: 'Direção da ordenação (padrão: desc, mais recentes primeiro)',
+        },
+        created_from: { type: 'string', description: 'Criado a partir de (YYYY-MM-DD, inclusivo)' },
+        created_to: { type: 'string', description: 'Criado até (YYYY-MM-DD, inclusivo)' },
+        updated_from: {
+          type: 'string',
+          description: 'Atualizado a partir de (YYYY-MM-DD, inclusivo)',
+        },
+        updated_to: { type: 'string', description: 'Atualizado até (YYYY-MM-DD, inclusivo)' },
+        pipeline_id: { type: 'number', description: 'Filtrar por funil' },
+        status_id: { type: 'number', description: 'Filtrar por etapa (exige pipeline_id)' },
+        responsible_user_id: { type: 'number', description: 'Filtrar por usuário responsável' },
+        with: {
+          type: 'string',
+          description: 'Entidades adicionais separadas por vírgula (ex.: contacts)',
+        },
       },
       additionalProperties: false,
     },

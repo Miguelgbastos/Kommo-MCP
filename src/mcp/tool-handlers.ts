@@ -1,4 +1,9 @@
-import { KommoAPI, type KommoEntityType } from '../kommo-api.js';
+import {
+  KommoAPI,
+  type KommoEntityType,
+  type LeadOrderField,
+  type SortDirection,
+} from '../kommo-api.js';
 import { handleAskKommo } from '../ask-kommo.js';
 import type { McpToolResult } from './types.js';
 
@@ -29,10 +34,23 @@ export async function executeTool(
       return textResult(await kommoAPI.getAccount());
 
     case 'get_leads': {
-      const limit = (args?.limit as number) || 250;
-      const page = (args?.page as number) || 1;
-      const query = args?.query as string | undefined;
-      return textResult(await kommoAPI.getLeads({ limit, page, ...(query ? { query } : {}) }));
+      return textResult(
+        await kommoAPI.listLeads({
+          limit: (args?.limit as number) || 250,
+          page: (args?.page as number) || 1,
+          query: args?.query as string | undefined,
+          orderBy: args?.order_by as LeadOrderField | undefined,
+          orderDirection: args?.order_dir as SortDirection | undefined,
+          createdFrom: args?.created_from as string | undefined,
+          createdTo: args?.created_to as string | undefined,
+          updatedFrom: args?.updated_from as string | undefined,
+          updatedTo: args?.updated_to as string | undefined,
+          pipelineId: args?.pipeline_id as number | undefined,
+          statusId: args?.status_id as number | undefined,
+          responsibleUserId: args?.responsible_user_id as number | undefined,
+          withParam: args?.with as string | undefined,
+        }),
+      );
     }
 
     case 'get_lead': {
