@@ -16,6 +16,11 @@ updates:
           - minor
           - patch
     open-pull-requests-limit: 5
+    ignore:
+      # TypeScript 7 is not yet supported by the current typescript-eslint release.
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: github-actions
     directory: /
