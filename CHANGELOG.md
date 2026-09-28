@@ -35,6 +35,7 @@ e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ### Modificado
 
+- Canal privado de segurança passou a ser o e-mail do mantenedor. O formulário público de Security Advisories permanece indisponível para relatores externos.
 - `CONTRIBUTING.md` reescrito e alinhado à estrutura real do projeto.
 - `LICENSE`: titular corrigido para o autor real do projeto.
 - `package.json`: `author`, `repository`, `bugs`, `homepage`, `engines.node` e novos scripts (`typecheck`, `lint`, `format`).

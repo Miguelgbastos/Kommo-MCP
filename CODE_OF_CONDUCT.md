@@ -50,8 +50,9 @@ espaços públicos.
 ## Aplicação
 
 Casos de comportamento abusivo, assediador ou de outra forma inaceitável
-podem ser reportados abrindo uma issue privada ou entrando em contato com o
-mantenedor pelo GitHub ([@Miguelgbastos](https://github.com/Miguelgbastos)).
+podem ser reportados ao mantenedor pelo e-mail
+[miguel.bastos@cosolutions.com.br](mailto:miguel.bastos@cosolutions.com.br)
+ou pelo GitHub ([@Miguelgbastos](https://github.com/Miguelgbastos)).
 Todas as reclamações serão revisadas e investigadas prontamente e de forma
 justa.
 
