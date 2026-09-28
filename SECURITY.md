@@ -12,13 +12,13 @@ Somente a versão mais recente do `main` recebe correções de segurança.
 ## Reportando uma vulnerabilidade
 
 Se você descobrir uma vulnerabilidade de segurança neste projeto, **não abra
-uma issue pública**. Em vez disso:
+uma issue pública**. Envie o relatório em privado para:
 
-1. Utilize o
-   [GitHub Security Advisories](https://github.com/Miguelgbastos/Kommo-MCP/security/advisories/new)
-   para reportar em modo privado; ou
-2. Caso o formulário não esteja disponível, abra apenas uma solicitação sem
-   detalhes sensíveis no perfil do mantenedor para combinar um canal privado.
+**[miguel.bastos@cosolutions.com.br](mailto:miguel.bastos@cosolutions.com.br)**
+
+O formulário
+[GitHub Security Advisories](https://github.com/Miguelgbastos/Kommo-MCP/security/advisories/new)
+não está disponível para relatores externos neste repositório.
 
 Inclua no relatório:
 

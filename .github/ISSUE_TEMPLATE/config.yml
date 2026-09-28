@@ -7,5 +7,5 @@ contact_links:
     url: https://modelcontextprotocol.io
     about: Dúvidas sobre o protocolo MCP em si (não específicas ao Kommo).
   - name: 🔒 Reportar vulnerabilidade
-    url: https://github.com/Miguelgbastos/Kommo-MCP/security/advisories/new
-    about: Reporte problemas de segurança de forma privada.
+    url: https://github.com/Miguelgbastos/Kommo-MCP/blob/main/SECURITY.md
+    about: Envie o relatório em privado para miguel.bastos@cosolutions.com.br. Não publique detalhes numa issue.

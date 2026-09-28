@@ -2,7 +2,8 @@
 
 ## Mantenedor atual
 
-- [Miguel G. Bastos](https://github.com/Miguelgbastos)
+- [Miguel G. Bastos](https://github.com/Miguelgbastos) —
+  [miguel.bastos@cosolutions.com.br](mailto:miguel.bastos@cosolutions.com.br)
 
 ## Revisão de contribuições
 

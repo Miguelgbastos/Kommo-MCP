@@ -382,8 +382,10 @@ Sugestões rápidas:
 
 ## Segurança
 
-Para reportar vulnerabilidades, veja [SECURITY.md](SECURITY.md). **Não**
-abra issues públicas para problemas de segurança.
+Para reportar vulnerabilidades, envie um e-mail para
+[miguel.bastos@cosolutions.com.br](mailto:miguel.bastos@cosolutions.com.br).
+O processo está em [SECURITY.md](SECURITY.md). **Não** abra issues públicas
+para problemas de segurança.
 
 ## Licença
 

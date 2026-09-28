@@ -47,7 +47,9 @@ Set `MCP_CONFIRM_WRITES=true` to require explicit confirmation for tools that
 modify CRM data. API calls are coordinated at no more than six requests per
 second per process, and write requests are never retried automatically.
 
-See [SECURITY.md](SECURITY.md) for private vulnerability reporting and
-[CONTRIBUTING.md](CONTRIBUTING.md) to contribute.
+Report vulnerabilities privately to
+[miguel.bastos@cosolutions.com.br](mailto:miguel.bastos@cosolutions.com.br).
+See [SECURITY.md](SECURITY.md) and [CONTRIBUTING.md](CONTRIBUTING.md) to
+contribute.
 
 MIT licensed.
