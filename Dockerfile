@@ -16,9 +16,11 @@ RUN npm run build
 # Production stage
 FROM node:24-slim AS production
 
+# Safe default: bind only inside the container. To expose the service, override
+# MCP_HOST=0.0.0.0 and always provide MCP_AUTH_TOKEN.
 ENV NODE_ENV=production \
     PORT=3001 \
-    MCP_HOST=0.0.0.0
+    MCP_HOST=127.0.0.1
 
 WORKDIR /app
 

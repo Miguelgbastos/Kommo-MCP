@@ -1,6 +1,7 @@
 import {
   KommoAPI,
   type KommoEntityType,
+  type KommoLead,
   type LeadOrderField,
   type SortDirection,
 } from '../kommo-api.js';
@@ -59,13 +60,25 @@ export async function executeTool(
       return textResult(await kommoAPI.getLead(id));
     }
 
-    case 'create_lead':
-      return textResult(await kommoAPI.createLead(args || {}));
+    case 'create_lead': {
+      const name = args?.name;
+      if (typeof name !== 'string') return errorResult('Requer name (texto).');
+      const createData: Partial<KommoLead> = { name };
+      if (typeof args?.price === 'number') createData.price = args.price;
+      if (typeof args?.status_id === 'number') createData.status_id = args.status_id;
+      if (typeof args?.pipeline_id === 'number') createData.pipeline_id = args.pipeline_id;
+      return textResult(await kommoAPI.createLead(createData));
+    }
 
     case 'update_lead': {
       const id = args?.id as number;
       if (typeof id !== 'number') return errorResult('Requer id (número).');
-      const { id: _id, ...updateData } = args || {};
+      const updateData: Partial<KommoLead> = {};
+      if (typeof args?.name === 'string') updateData.name = args.name;
+      if (typeof args?.price === 'number') updateData.price = args.price;
+      if (typeof args?.status_id === 'number') updateData.status_id = args.status_id;
+      if (typeof args?.pipeline_id === 'number') updateData.pipeline_id = args.pipeline_id;
+      if (typeof args?.loss_reason_id === 'number') updateData.loss_reason_id = args.loss_reason_id;
       return textResult(await kommoAPI.updateLead(id, updateData));
     }
 

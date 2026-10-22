@@ -19,6 +19,10 @@ const WRITE_TOOLS = new Set([
   'stop_salesbot',
 ]);
 
+export function writeConfirmationRequired(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.MCP_CONFIRM_WRITES !== 'false';
+}
+
 function safeToolError(error: unknown) {
   if (axios.isAxiosError(error)) {
     const status = error.response?.status;
@@ -77,12 +81,12 @@ export function createKommoMcpServer(kommoAPI: KommoAPI): McpServer {
         },
       },
       async (args) => {
-        if (isWrite && process.env.MCP_CONFIRM_WRITES === 'true' && args.confirm !== true) {
+        if (isWrite && writeConfirmationRequired() && args.confirm !== true) {
           return {
             content: [
               {
                 type: 'text' as const,
-                text: 'Esta operação exige confirm=true porque MCP_CONFIRM_WRITES está ativo.',
+                text: 'Esta operação exige confirm=true. Use MCP_CONFIRM_WRITES=false apenas para desativar conscientemente esta proteção.',
               },
             ],
             isError: true,

@@ -103,7 +103,8 @@ O servidor sobe em `http://127.0.0.1:3001/mcp`.
 | `MCP_HOST`                  | Host de binding                                              | `127.0.0.1` |
 | `MCP_ALLOWED_ORIGINS`       | Origens permitidas (separadas por vírgula)                   | —           |
 | `MCP_AUTH_TOKEN`            | Protege `/mcp`; obrigatório quando `MCP_HOST` não é loopback | —           |
-| `MCP_CONFIRM_WRITES`        | Exige `confirm=true` nas tools que alteram dados             | `false`     |
+| `MCP_RATE_LIMIT_PER_MINUTE` | Limite de requisições ao `/mcp` por endereço e por processo  | `120`       |
+| `MCP_CONFIRM_WRITES`        | Exige `confirm=true`; somente `false` desativa a proteção    | `true`      |
 | `LOG_LEVEL`                 | Nível de log                                                 | `info`      |
 
 ## Execução
@@ -138,10 +139,14 @@ docker run -d -p 3001:3001 \
 
 > Em produção, coloque o servidor atrás de um reverse proxy com TLS e defina
 > `MCP_AUTH_TOKEN` + `MCP_ALLOWED_ORIGINS`. O servidor se recusa a iniciar em
-> um endereço não local sem `MCP_AUTH_TOKEN`.
+> um endereço não local sem `MCP_AUTH_TOKEN`, inclusive quando `createApp()` é
+> usado diretamente. A imagem Docker usa `127.0.0.1` por padrão; para publicar
+> a porta, configure conscientemente `MCP_HOST=0.0.0.0` junto com um token longo.
 
-> Ative `MCP_CONFIRM_WRITES=true` quando o cliente permitir confirmação
-> explícita. As tools de escrita anunciam `destructiveHint`; as consultas
+> A confirmação explícita é obrigatória por padrão nas tools de escrita. Use
+> `MCP_CONFIRM_WRITES=false` somente em automações controladas que assumam esse
+> risco; o servidor registra um aviso operacional quando essa proteção é
+> desativada. As tools de escrita anunciam `destructiveHint`; as consultas
 > anunciam `readOnlyHint` pelo protocolo MCP.
 
 ## Integração com clientes MCP
@@ -333,6 +338,10 @@ Clientes modernos podem fixar `2026-07-28` conforme o exemplo acima.
 - **`429` do Kommo** — todas as chamadas compartilham um limitador coordenado;
   leituras usam backoff e `Retry-After`, enquanto escritas não são repetidas
   automaticamente para evitar duplicidade.
+- **`429` do `/mcp`** — o servidor limita cada endereço cliente a 120
+  requisições por minuto por processo; ajuste `MCP_RATE_LIMIT_PER_MINUTE` se
+  necessário. O endereço do proxy é usado por padrão, pois `trust proxy` não é
+  habilitado automaticamente.
 - **Docker `HEALTHCHECK` falha** — a imagem usa `node --eval` para o
   healthcheck, verifique se a porta interna corresponde a `PORT`.
 - **Erros de build TypeScript** — rode `npm run typecheck` para ver mensagens

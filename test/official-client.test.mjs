@@ -40,6 +40,13 @@ async function verifyDiscovery(url, createLeadCalls, versionNegotiation) {
     assert.equal(blocked.isError, true);
     assert.match(blocked.content[0].text, /confirm=true/);
 
+    const rejectedExtraProperty = await client.callTool({
+      name: 'create_lead',
+      arguments: { name: 'Teste', created_by: 999, confirm: true },
+    });
+    assert.equal(rejectedExtraProperty.isError, true);
+    assert.equal(createLeadCalls.length, initialCreateLeadCalls);
+
     const created = await client.callTool({
       name: 'create_lead',
       arguments: { name: 'Teste', confirm: true },
@@ -54,7 +61,7 @@ async function verifyDiscovery(url, createLeadCalls, versionNegotiation) {
 
 test('official MCP client discovers capabilities with protocol 2026-07-28', async (context) => {
   const previousConfirmation = process.env.MCP_CONFIRM_WRITES;
-  process.env.MCP_CONFIRM_WRITES = 'true';
+  delete process.env.MCP_CONFIRM_WRITES;
   context.after(() => {
     if (previousConfirmation === undefined) delete process.env.MCP_CONFIRM_WRITES;
     else process.env.MCP_CONFIRM_WRITES = previousConfirmation;
@@ -79,4 +86,41 @@ test('official MCP client discovers capabilities with protocol 2026-07-28', asyn
 
   await verifyDiscovery(url, createLeadCalls, { mode: { pin: '2026-07-28' } });
   await verifyDiscovery(url, createLeadCalls);
+});
+
+test('MCP_CONFIRM_WRITES=false explicitly opts out of write confirmation', async (context) => {
+  const previousConfirmation = process.env.MCP_CONFIRM_WRITES;
+  process.env.MCP_CONFIRM_WRITES = 'false';
+  context.after(() => {
+    if (previousConfirmation === undefined) delete process.env.MCP_CONFIRM_WRITES;
+    else process.env.MCP_CONFIRM_WRITES = previousConfirmation;
+  });
+  const createLeadCalls = [];
+  const kommoAPI = {
+    async createLead(input) {
+      createLeadCalls.push(input);
+      return { id: 1, ...input };
+    },
+  };
+  const server = createApp({ logLevel: 'silent', kommoAPI }).listen(0, '127.0.0.1');
+  await new Promise((resolve) => server.once('listening', resolve));
+  context.after(() => new Promise((resolve) => server.close(resolve)));
+
+  const address = server.address();
+  assert.ok(address && typeof address === 'object');
+  const client = new Client({ name: 'write-opt-out-test', version: '1.0.0' });
+  const transport = new StreamableHTTPClientTransport(
+    new URL(`http://127.0.0.1:${address.port}/mcp`),
+  );
+  try {
+    await client.connect(transport);
+    const created = await client.callTool({
+      name: 'create_lead',
+      arguments: { name: 'Sem confirmação' },
+    });
+    assert.equal(created.isError, undefined);
+    assert.deepEqual(createLeadCalls, [{ name: 'Sem confirmação' }]);
+  } finally {
+    await client.close();
+  }
 });

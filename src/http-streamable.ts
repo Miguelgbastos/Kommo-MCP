@@ -21,6 +21,8 @@ interface AppOptions {
   authToken?: string;
   allowedOrigins?: string[];
   logLevel?: string;
+  host?: string;
+  rateLimitPerMinute?: number;
 }
 
 export function validateRuntimeConfig(env: NodeJS.ProcessEnv = process.env): string[] {
@@ -53,6 +55,12 @@ export function validateRuntimeConfig(env: NodeJS.ProcessEnv = process.env): str
       issues.push('KOMMO_REQUESTS_PER_SECOND must be greater than 0 and at most 6');
     }
   }
+  if (env.MCP_RATE_LIMIT_PER_MINUTE) {
+    const rateLimitPerMinute = Number(env.MCP_RATE_LIMIT_PER_MINUTE);
+    if (!Number.isInteger(rateLimitPerMinute) || rateLimitPerMinute <= 0) {
+      issues.push('MCP_RATE_LIMIT_PER_MINUTE must be a positive integer');
+    }
+  }
   if (env.KOMMO_TIMEZONE) {
     try {
       new Intl.DateTimeFormat('en-US', { timeZone: env.KOMMO_TIMEZONE }).format();
@@ -61,6 +69,10 @@ export function validateRuntimeConfig(env: NodeJS.ProcessEnv = process.env): str
     }
   }
   return issues;
+}
+
+function isLoopbackHost(host: string): boolean {
+  return host === 'localhost' || host === '127.0.0.1' || host === '::1';
 }
 
 function isLoopbackOrigin(origin: string): boolean {
@@ -89,6 +101,7 @@ function jsonRpcError(code: number, message: string) {
 export function createApp(options: AppOptions = {}) {
   const app = express();
   const logLevel = options.logLevel ?? process.env.LOG_LEVEL ?? 'info';
+  const host = options.host ?? process.env.MCP_HOST ?? '127.0.0.1';
   const configuredOrigins =
     options.allowedOrigins ??
     process.env.MCP_ALLOWED_ORIGINS?.split(',')
@@ -96,6 +109,14 @@ export function createApp(options: AppOptions = {}) {
       .filter(Boolean) ??
     [];
   const authToken = options.authToken ?? process.env.MCP_AUTH_TOKEN;
+  if (!isLoopbackHost(host) && !authToken) {
+    throw new Error('MCP_AUTH_TOKEN is required when MCP_HOST is not a loopback address');
+  }
+  const rateLimitPerMinute =
+    options.rateLimitPerMinute ?? Number(process.env.MCP_RATE_LIMIT_PER_MINUTE ?? 120);
+  if (!Number.isInteger(rateLimitPerMinute) || rateLimitPerMinute <= 0) {
+    throw new Error('MCP_RATE_LIMIT_PER_MINUTE must be a positive integer');
+  }
   const configIssues = options.kommoAPI ? [] : validateRuntimeConfig();
   const kommoAPI =
     options.kommoAPI ??
@@ -112,7 +133,36 @@ export function createApp(options: AppOptions = {}) {
       if (logLevel !== 'silent')
         console.error(`[${new Date().toISOString()}] ERROR: ${message}`, error);
     },
+    warn: (message: string) => {
+      if (logLevel !== 'silent') console.warn(`[${new Date().toISOString()}] WARN: ${message}`);
+    },
   };
+
+  if (!authToken) {
+    logger.warn('MCP_AUTH_TOKEN is not configured; keep MCP_HOST bound to loopback only.');
+  }
+  if (process.env.MCP_CONFIRM_WRITES === 'false') {
+    logger.warn('Write confirmation is disabled by MCP_CONFIRM_WRITES=false.');
+  }
+
+  const rateLimitWindows = new Map<string, { count: number; resetAt: number }>();
+
+  function rateLimitExceeded(clientAddress: string): { limited: boolean; retryAfter: number } {
+    const now = Date.now();
+    for (const [address, window] of rateLimitWindows) {
+      if (window.resetAt <= now) rateLimitWindows.delete(address);
+    }
+    const current = rateLimitWindows.get(clientAddress);
+    if (!current) {
+      rateLimitWindows.set(clientAddress, { count: 1, resetAt: now + 60_000 });
+      return { limited: false, retryAfter: 0 };
+    }
+    if (current.count >= rateLimitPerMinute) {
+      return { limited: true, retryAfter: Math.max(1, Math.ceil((current.resetAt - now) / 1000)) };
+    }
+    current.count += 1;
+    return { limited: false, retryAfter: 0 };
+  }
 
   function originAllowed(origin: string | undefined): boolean {
     if (!origin) return true;
@@ -170,6 +220,12 @@ export function createApp(options: AppOptions = {}) {
   });
 
   app.use('/mcp', (req, res, next) => {
+    const rateLimit = rateLimitExceeded(req.ip || req.socket.remoteAddress || 'unknown');
+    if (rateLimit.limited) {
+      res.set('Retry-After', String(rateLimit.retryAfter));
+      res.status(429).json(jsonRpcError(-32002, 'Too many requests'));
+      return;
+    }
     if (!originAllowed(req.header('origin'))) {
       res.status(403).json(jsonRpcError(-32000, 'Origin not allowed'));
       return;
@@ -193,12 +249,9 @@ export function createApp(options: AppOptions = {}) {
 export function startServer(): void {
   const port = Number(process.env.PORT) || 3001;
   const host = process.env.MCP_HOST || '127.0.0.1';
-  if (!['127.0.0.1', 'localhost', '::1'].includes(host) && !process.env.MCP_AUTH_TOKEN) {
-    throw new Error('MCP_AUTH_TOKEN is required when MCP_HOST is not a loopback address');
-  }
   const configIssues = validateRuntimeConfig();
   if (configIssues.length > 0) throw new Error(configIssues.join('; '));
-  createApp().listen(port, host, () =>
+  createApp({ host }).listen(port, host, () =>
     console.log(`Kommo MCP Server listening on http://${host}:${port}`),
   );
 }
