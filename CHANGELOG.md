@@ -32,6 +32,8 @@ e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
   linhas, branches e funções, compatíveis com Node 22 e 24.
 - Análise CodeQL semanal e em Pull Requests.
 - Smoke tests do pacote npm e da imagem GHCR após a publicação.
+- Rate limiting por endereço cliente no endpoint `/mcp`.
+- Teste de CI que garante o fail-closed da imagem em host externo sem token.
 
 ### Modificado
 
@@ -59,6 +61,11 @@ e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Workflow de release dividido em validação, npm, GHCR e criação da GitHub Release.
 - Timeout e número de retentativas agora rejeitam configurações inválidas.
 - Runtime mínimo atualizado para Node 22.13; a imagem oficial passa a usar Node 24 LTS.
+- Autenticação também validada em `createApp()`; imagem Docker passa a usar
+  loopback por padrão.
+- Confirmação explícita passa a ser obrigatória por padrão nas tools de escrita,
+  com opt-out consciente por `MCP_CONFIRM_WRITES=false`.
+- Schemas e handlers de escrita passam a aceitar apenas campos declarados.
 
 ### Removido
 

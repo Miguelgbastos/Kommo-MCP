@@ -65,6 +65,19 @@ test('runtime configuration rejects unsafe numeric settings and accepts zero ret
     'KOMMO_MAX_RETRIES must be an integer between 0 and 10',
   ]);
   assert.deepEqual(validateRuntimeConfig({ ...required, KOMMO_MAX_RETRIES: '0' }), []);
+  assert.deepEqual(validateRuntimeConfig({ ...required, MCP_RATE_LIMIT_PER_MINUTE: '0' }), [
+    'MCP_RATE_LIMIT_PER_MINUTE must be a positive integer',
+  ]);
+});
+
+test('createApp fails closed for a non-loopback host without an MCP token', () => {
+  assert.throws(
+    () => createApp({ host: '0.0.0.0', logLevel: 'silent' }),
+    /MCP_AUTH_TOKEN is required/,
+  );
+  assert.doesNotThrow(() =>
+    createApp({ host: '0.0.0.0', authToken: 'test-secret', logLevel: 'silent' }),
+  );
 });
 
 test('serves 2025-era clients through stateless compatibility', async () => {
@@ -101,4 +114,27 @@ test('blocks untrusted browser origins and enforces configured auth', async () =
     .set('Authorization', 'Bearer test-secret')
     .send(payload)
     .expect(200);
+});
+
+test('rate limits repeated MCP requests per client address', async () => {
+  const app = createApp({
+    logLevel: 'silent',
+    authToken: 'test-secret',
+    rateLimitPerMinute: 1,
+  });
+  const payload = legacyInitialize();
+  await request(app)
+    .post('/mcp')
+    .set('Accept', accept)
+    .set('Authorization', 'Bearer test-secret')
+    .send(payload)
+    .expect(200);
+  const limited = await request(app)
+    .post('/mcp')
+    .set('Accept', accept)
+    .set('Authorization', 'Bearer test-secret')
+    .send(payload)
+    .expect(429);
+  assert.equal(limited.body.error.code, -32002);
+  assert.ok(Number(limited.headers['retry-after']) > 0);
 });

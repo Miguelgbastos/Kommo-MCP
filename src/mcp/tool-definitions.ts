@@ -80,7 +80,7 @@ export const MCP_TOOLS: McpToolDefinition[] = [
         pipeline_id: { type: 'number', description: 'ID do pipeline' },
       },
       required: ['name'],
-      additionalProperties: true,
+      additionalProperties: false,
     },
   },
   {
@@ -98,7 +98,7 @@ export const MCP_TOOLS: McpToolDefinition[] = [
         loss_reason_id: { type: 'number', description: 'ID do motivo de perda' },
       },
       required: ['id'],
-      additionalProperties: true,
+      additionalProperties: false,
     },
   },
   {
@@ -197,7 +197,7 @@ export const MCP_TOOLS: McpToolDefinition[] = [
         responsible_user_id: { type: 'number', description: 'ID do usuário responsável' },
       },
       required: ['text', 'entity_id', 'entity_type', 'complete_till'],
-      additionalProperties: true,
+      additionalProperties: false,
     },
   },
   {

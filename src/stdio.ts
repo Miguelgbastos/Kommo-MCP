@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { KommoAPI } from './kommo-api.js';
-import { createKommoMcpServer } from './mcp/server.js';
+import { createKommoMcpServer, writeConfirmationRequired } from './mcp/server.js';
 import { validateRuntimeConfig } from './http-streamable.js';
 
 dotenv.config({ quiet: true });
@@ -12,6 +12,11 @@ dotenv.config({ quiet: true });
 export function startStdioServer() {
   const configIssues = validateRuntimeConfig();
   if (configIssues.length > 0) throw new Error(configIssues.join('; '));
+  if (!writeConfirmationRequired()) {
+    console.warn(
+      `[${new Date().toISOString()}] WARN: Write confirmation is disabled by MCP_CONFIRM_WRITES=false.`,
+    );
+  }
 
   const kommoAPI = new KommoAPI({
     baseUrl: process.env.KOMMO_BASE_URL!,

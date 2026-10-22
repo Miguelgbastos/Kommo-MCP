@@ -80,7 +80,8 @@ test('get_leads forwards ordering and filters to the API', async () => {
 
 test('create_lead forwards only the supplied payload', async () => {
   const calls = [];
-  const payload = { name: 'Novo lead', price: 1500, pipeline_id: 7 };
+  const payload = { name: 'Novo lead', price: 1500, pipeline_id: 7, created_by: 999 };
+  const expectedPayload = { name: 'Novo lead', price: 1500, pipeline_id: 7 };
   const api = {
     async createLead(input) {
       calls.push(input);
@@ -90,8 +91,15 @@ test('create_lead forwards only the supplied payload', async () => {
 
   const result = await executeTool(api, 'create_lead', payload);
 
-  assert.deepEqual(calls, [payload]);
-  assert.deepEqual(resultData(result), { id: 101, ...payload });
+  assert.deepEqual(calls, [expectedPayload]);
+  assert.deepEqual(resultData(result), { id: 101, ...expectedPayload });
+});
+
+test('write tool schemas reject undeclared properties', () => {
+  for (const name of ['create_lead', 'update_lead', 'create_task']) {
+    const tool = MCP_TOOLS.find((candidate) => candidate.name === name);
+    assert.equal(tool?.inputSchema.additionalProperties, false, name);
+  }
 });
 
 test('move_lead selects the pipeline operation when pipeline_id is present', async () => {

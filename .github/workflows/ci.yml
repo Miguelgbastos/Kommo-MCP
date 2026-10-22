@@ -71,6 +71,19 @@ jobs:
         with:
           context: .
           push: false
+          load: true
           tags: kommo-mcp-server:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Verify secure Docker defaults and fail-closed startup
+        run: |
+          docker image inspect kommo-mcp-server:ci --format '{{range .Config.Env}}{{println .}}{{end}}' | grep '^MCP_HOST=127.0.0.1$'
+          if docker run --rm \
+            -e KOMMO_BASE_URL=https://example.kommo.com \
+            -e KOMMO_ACCESS_TOKEN=ci-test \
+            -e MCP_HOST=0.0.0.0 \
+            kommo-mcp-server:ci; then
+            echo 'Image started on a non-loopback host without MCP_AUTH_TOKEN'
+            exit 1
+          fi
