@@ -138,3 +138,41 @@ test('rate limits repeated MCP requests per client address', async () => {
   assert.equal(limited.body.error.code, -32002);
   assert.ok(Number(limited.headers['retry-after']) > 0);
 });
+
+test('blocks client addresses outside MCP_ALLOWED_IPS', async () => {
+  const app = createApp({
+    logLevel: 'silent',
+    authToken: 'test-secret',
+    allowedIps: ['203.0.113.10'],
+    trustProxy: true,
+  });
+  const payload = legacyInitialize();
+  const denied = await request(app)
+    .post('/mcp')
+    .set('Accept', accept)
+    .set('Authorization', 'Bearer test-secret')
+    .set('X-Forwarded-For', '198.51.100.20')
+    .send(payload)
+    .expect(403);
+  assert.equal(denied.body.error.code, -32003);
+
+  await request(app)
+    .post('/mcp')
+    .set('Accept', accept)
+    .set('Authorization', 'Bearer test-secret')
+    .set('X-Forwarded-For', '203.0.113.10')
+    .send(payload)
+    .expect(200);
+});
+
+test('runtime configuration rejects invalid MCP_TRUST_PROXY values', () => {
+  const required = {
+    KOMMO_BASE_URL: 'https://example.kommo.com',
+    KOMMO_ACCESS_TOKEN: 'x',
+  };
+  assert.deepEqual(validateRuntimeConfig({ ...required, MCP_TRUST_PROXY: 'maybe' }), [
+    'MCP_TRUST_PROXY must be true, false, or a positive hop count',
+  ]);
+  assert.deepEqual(validateRuntimeConfig({ ...required, MCP_TRUST_PROXY: 'true' }), []);
+  assert.deepEqual(validateRuntimeConfig({ ...required, MCP_TRUST_PROXY: '2' }), []);
+});

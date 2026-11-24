@@ -103,6 +103,8 @@ O servidor sobe em `http://127.0.0.1:3001/mcp`.
 | `MCP_HOST`                  | Host de binding                                              | `127.0.0.1` |
 | `MCP_ALLOWED_ORIGINS`       | Origens permitidas (separadas por vírgula)                   | —           |
 | `MCP_AUTH_TOKEN`            | Protege `/mcp`; obrigatório quando `MCP_HOST` não é loopback | —           |
+| `MCP_ALLOWED_IPS`           | Allow-list de IPs clientes para `/mcp` (vírgula)             | —           |
+| `MCP_TRUST_PROXY`           | Confia em `X-Forwarded-For` (`true`/`false`/hops)            | `false`     |
 | `MCP_RATE_LIMIT_PER_MINUTE` | Limite de requisições ao `/mcp` por endereço e por processo  | `120`       |
 | `MCP_CONFIRM_WRITES`        | Exige `confirm=true`; somente `false` desativa a proteção    | `true`      |
 | `LOG_LEVEL`                 | Nível de log                                                 | `info`      |
@@ -138,10 +140,12 @@ docker run -d -p 3001:3001 \
 ```
 
 > Em produção, coloque o servidor atrás de um reverse proxy com TLS e defina
-> `MCP_AUTH_TOKEN` + `MCP_ALLOWED_ORIGINS`. O servidor se recusa a iniciar em
-> um endereço não local sem `MCP_AUTH_TOKEN`, inclusive quando `createApp()` é
-> usado diretamente. A imagem Docker usa `127.0.0.1` por padrão; para publicar
-> a porta, configure conscientemente `MCP_HOST=0.0.0.0` junto com um token longo.
+> `MCP_AUTH_TOKEN`, `MCP_ALLOWED_ORIGINS` e, preferencialmente, `MCP_ALLOWED_IPS`.
+> Com proxy, use `MCP_TRUST_PROXY=1` (ou o número de hops) para o rate limit e a
+> allow-list enxergarem o IP do cliente. O servidor se recusa a iniciar em um
+> endereço não local sem `MCP_AUTH_TOKEN`, inclusive quando `createApp()` é usado
+> diretamente. A imagem Docker usa `127.0.0.1` por padrão; para publicar a porta,
+> configure conscientemente `MCP_HOST=0.0.0.0` junto com um token longo.
 
 > A confirmação explícita é obrigatória por padrão nas tools de escrita. Use
 > `MCP_CONFIRM_WRITES=false` somente em automações controladas que assumam esse

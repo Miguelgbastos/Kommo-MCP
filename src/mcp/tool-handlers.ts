@@ -140,15 +140,17 @@ export async function executeTool(
     case 'create_task': {
       const text = args?.text as string;
       const entityId = args?.entity_id as number;
-      const entityType = args?.entity_type as string;
+      const entityType = args?.entity_type;
       const completeTill = args?.complete_till as number;
       if (
         !text ||
         typeof entityId !== 'number' ||
-        !entityType ||
+        !isEntityType(entityType) ||
         typeof completeTill !== 'number'
       ) {
-        return errorResult('Requer text, entity_id, entity_type e complete_till.');
+        return errorResult(
+          'Requer text, entity_id, entity_type (leads|contacts|companies) e complete_till.',
+        );
       }
       return textResult(
         await kommoAPI.createTask({
@@ -156,8 +158,8 @@ export async function executeTool(
           entity_id: entityId,
           entity_type: entityType,
           complete_till: completeTill,
-          ...(args?.responsible_user_id
-            ? { responsible_user_id: args.responsible_user_id as number }
+          ...(typeof args?.responsible_user_id === 'number'
+            ? { responsible_user_id: args.responsible_user_id }
             : {}),
         }),
       );

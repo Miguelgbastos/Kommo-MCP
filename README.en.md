@@ -44,12 +44,13 @@ guidance, read the [Portuguese documentation](README.md).
 
 Remote deployments require an MCP authentication token and TLS termination.
 The Docker image binds to `127.0.0.1` by default; external deployments must set
-`MCP_HOST=0.0.0.0` together with a long `MCP_AUTH_TOKEN`. Write tools require
-`confirm=true` by default; only set `MCP_CONFIRM_WRITES=false` when a controlled
-automation consciously accepts that risk. The `/mcp` endpoint is limited to 120
-requests per minute per client address by default. API calls are coordinated at
-no more than six requests per second per process, and write requests are never
-retried automatically.
+`MCP_HOST=0.0.0.0` together with a long `MCP_AUTH_TOKEN`. Prefer also setting
+`MCP_ALLOWED_IPS` and, behind a trusted reverse proxy, `MCP_TRUST_PROXY`. Write
+tools require `confirm=true` by default; only set `MCP_CONFIRM_WRITES=false`
+when a controlled automation consciously accepts that risk. The `/mcp` endpoint
+is limited to 120 requests per minute per client address by default. API calls
+are coordinated at no more than six requests per second per process, and write
+requests are never retried automatically.
 
 Report vulnerabilities privately to
 [miguel.bastos@cosolutions.com.br](mailto:miguel.bastos@cosolutions.com.br).
