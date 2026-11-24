@@ -189,10 +189,7 @@ export const MCP_TOOLS: McpToolDefinition[] = [
       properties: {
         text: { type: 'string', description: 'Texto da tarefa' },
         entity_id: { type: 'number', description: 'ID da entidade vinculada' },
-        entity_type: {
-          type: 'string',
-          description: 'Tipo da entidade (leads, contacts, companies)',
-        },
+        entity_type: entityTypeProperty,
         complete_till: { type: 'number', description: 'Timestamp Unix de conclusão' },
         responsible_user_id: { type: 'number', description: 'ID do usuário responsável' },
       },
