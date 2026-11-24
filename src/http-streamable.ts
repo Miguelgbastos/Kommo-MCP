@@ -27,6 +27,17 @@ interface AppOptions {
   rateLimitPerMinute?: number;
 }
 
+/** Prefer hop counts over boolean true so MCP_TRUST_PROXY=1 trusts one proxy, not the full chain. */
+export function resolveTrustProxy(value: string | undefined): boolean | number | undefined {
+  if (value === undefined || value.trim() === '') return undefined;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'true') return true;
+  if (normalized === 'false' || normalized === '0') return false;
+  const hopCount = Number(normalized);
+  if (Number.isInteger(hopCount) && hopCount >= 1) return hopCount;
+  return undefined;
+}
+
 export function validateRuntimeConfig(env: NodeJS.ProcessEnv = process.env): string[] {
   const issues: string[] = [];
   if (!env.KOMMO_BASE_URL) issues.push('KOMMO_BASE_URL is required');
@@ -63,13 +74,9 @@ export function validateRuntimeConfig(env: NodeJS.ProcessEnv = process.env): str
       issues.push('MCP_RATE_LIMIT_PER_MINUTE must be a positive integer');
     }
   }
-  if (env.MCP_TRUST_PROXY) {
-    const trustProxy = env.MCP_TRUST_PROXY.trim().toLowerCase();
-    const hopCount = Number(env.MCP_TRUST_PROXY);
-    const validBoolean =
-      trustProxy === 'true' || trustProxy === 'false' || trustProxy === '1' || trustProxy === '0';
-    if (!validBoolean && (!Number.isInteger(hopCount) || hopCount < 1)) {
-      issues.push('MCP_TRUST_PROXY must be true, false, or a positive hop count');
+  if (env.MCP_TRUST_PROXY !== undefined && env.MCP_TRUST_PROXY.trim() !== '') {
+    if (resolveTrustProxy(env.MCP_TRUST_PROXY) === undefined) {
+      issues.push('MCP_TRUST_PROXY must be true, false, 0, or a positive hop count');
     }
   }
   if (env.KOMMO_TIMEZONE) {
@@ -110,16 +117,6 @@ function parseCsvList(value: string | undefined): string[] {
       .map((entry) => entry.trim())
       .filter(Boolean) ?? []
   );
-}
-
-function resolveTrustProxy(value: string | undefined): boolean | number | undefined {
-  if (value === undefined || value.trim() === '') return undefined;
-  const normalized = value.trim().toLowerCase();
-  if (normalized === 'true' || normalized === '1') return true;
-  if (normalized === 'false' || normalized === '0') return false;
-  const hopCount = Number(value);
-  if (Number.isInteger(hopCount) && hopCount >= 1) return hopCount;
-  return undefined;
 }
 
 function safeTokenEquals(actual: string | undefined, expected: string): boolean {

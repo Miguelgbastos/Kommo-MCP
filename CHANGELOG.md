@@ -11,6 +11,7 @@ e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 - Allow-list opcional de IPs clientes (`MCP_ALLOWED_IPS`) e suporte a
   `MCP_TRUST_PROXY` para rate limit/allow-list atrás de reverse proxy.
+  `MCP_TRUST_PROXY=1` passa a significar um hop (não `true`/cadeia inteira).
 - `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1).
 - `SECURITY.md` com política de divulgação responsável.
 - `CHANGELOG.md` dedicado (extraído do README).

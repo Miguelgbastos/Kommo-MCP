@@ -41,7 +41,8 @@ acordo com a gravidade e a disponibilidade dos mantenedores.
   quando possível, `MCP_ALLOWED_IPS`.
 - Fora de loopback, o servidor exige `MCP_AUTH_TOKEN` e registra aviso se
   `MCP_ALLOWED_IPS` não estiver definido.
-- Ative `MCP_TRUST_PROXY` somente atrás de um reverse proxy confiável.
+- Ative `MCP_TRUST_PROXY` somente atrás de um reverse proxy confiável; use o
+  número de hops (`1`) em vez de `true`, para não confiar na cadeia inteira.
 - Mantenha a confirmação de escrita ativa (`confirm=true`); use
   `MCP_CONFIRM_WRITES=false` só em automações que assumam esse risco.
 - Não exponha o servidor MCP diretamente à internet sem uma camada de

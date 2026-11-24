@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
-import { createApp, validateRuntimeConfig } from '../dist/http-streamable.js';
+import { createApp, resolveTrustProxy, validateRuntimeConfig } from '../dist/http-streamable.js';
 
 const accept = 'application/json, text/event-stream';
 
@@ -144,7 +144,7 @@ test('blocks client addresses outside MCP_ALLOWED_IPS', async () => {
     logLevel: 'silent',
     authToken: 'test-secret',
     allowedIps: ['203.0.113.10'],
-    trustProxy: true,
+    trustProxy: 1,
   });
   const payload = legacyInitialize();
   const denied = await request(app)
@@ -165,14 +165,51 @@ test('blocks client addresses outside MCP_ALLOWED_IPS', async () => {
     .expect(200);
 });
 
+test('MCP_TRUST_PROXY=1 is a single hop, not boolean true', () => {
+  assert.equal(resolveTrustProxy('1'), 1);
+  assert.equal(resolveTrustProxy('2'), 2);
+  assert.equal(resolveTrustProxy('true'), true);
+  assert.equal(resolveTrustProxy('false'), false);
+  assert.equal(resolveTrustProxy('0'), false);
+
+  const previous = process.env.MCP_TRUST_PROXY;
+  process.env.MCP_TRUST_PROXY = '1';
+  try {
+    const app = createApp({ logLevel: 'silent', authToken: 'test-secret' });
+    assert.equal(app.get('trust proxy'), 1);
+  } finally {
+    if (previous === undefined) delete process.env.MCP_TRUST_PROXY;
+    else process.env.MCP_TRUST_PROXY = previous;
+  }
+});
+
+test('single-hop trust proxy ignores a spoofed left-most X-Forwarded-For', async () => {
+  const app = createApp({
+    logLevel: 'silent',
+    authToken: 'test-secret',
+    allowedIps: ['203.0.113.10'],
+    trustProxy: 1,
+  });
+  const payload = legacyInitialize();
+  const spoofed = await request(app)
+    .post('/mcp')
+    .set('Accept', accept)
+    .set('Authorization', 'Bearer test-secret')
+    .set('X-Forwarded-For', '203.0.113.10, 198.51.100.20')
+    .send(payload)
+    .expect(403);
+  assert.equal(spoofed.body.error.code, -32003);
+});
+
 test('runtime configuration rejects invalid MCP_TRUST_PROXY values', () => {
   const required = {
     KOMMO_BASE_URL: 'https://example.kommo.com',
     KOMMO_ACCESS_TOKEN: 'x',
   };
   assert.deepEqual(validateRuntimeConfig({ ...required, MCP_TRUST_PROXY: 'maybe' }), [
-    'MCP_TRUST_PROXY must be true, false, or a positive hop count',
+    'MCP_TRUST_PROXY must be true, false, 0, or a positive hop count',
   ]);
   assert.deepEqual(validateRuntimeConfig({ ...required, MCP_TRUST_PROXY: 'true' }), []);
+  assert.deepEqual(validateRuntimeConfig({ ...required, MCP_TRUST_PROXY: '1' }), []);
   assert.deepEqual(validateRuntimeConfig({ ...required, MCP_TRUST_PROXY: '2' }), []);
 });
