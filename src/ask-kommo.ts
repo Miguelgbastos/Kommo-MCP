@@ -142,37 +142,39 @@ function getCategoryFromQuestion(question: string): string | null {
   return null;
 }
 
-function getMonthFromQuestion(question: string): number | null {
+/** Match month names as whole words so "marketing"/"mais"/"setor" are not months. */
+export function getMonthFromQuestion(question: string): number | null {
   const questionLower = question.toLowerCase();
-  const months: Record<string, number> = {
-    janeiro: 0,
-    jan: 0,
-    fevereiro: 1,
-    fev: 1,
-    março: 2,
-    mar: 2,
-    abril: 3,
-    abr: 3,
-    maio: 4,
-    mai: 4,
-    junho: 5,
-    jun: 5,
-    julho: 6,
-    jul: 6,
-    agosto: 7,
-    ago: 7,
-    setembro: 8,
-    set: 8,
-    outubro: 9,
-    out: 9,
-    novembro: 10,
-    nov: 10,
-    dezembro: 11,
-    dez: 11,
-  };
+  const months: Array<[string, number]> = [
+    ['janeiro', 0],
+    ['fevereiro', 1],
+    ['março', 2],
+    ['abril', 3],
+    ['maio', 4],
+    ['junho', 5],
+    ['julho', 6],
+    ['agosto', 7],
+    ['setembro', 8],
+    ['outubro', 9],
+    ['novembro', 10],
+    ['dezembro', 11],
+    ['jan', 0],
+    ['fev', 1],
+    ['mar', 2],
+    ['abr', 3],
+    ['mai', 4],
+    ['jun', 5],
+    ['jul', 6],
+    ['ago', 7],
+    ['set', 8],
+    ['out', 9],
+    ['nov', 10],
+    ['dez', 11],
+  ];
 
-  for (const [monthName, monthNumber] of Object.entries(months)) {
-    if (questionLower.includes(monthName)) return monthNumber;
+  for (const [monthName, monthNumber] of months) {
+    const pattern = new RegExp(`(^|[^\\p{L}])${monthName}([^\\p{L}]|$)`, 'u');
+    if (pattern.test(questionLower)) return monthNumber;
   }
   return null;
 }
@@ -288,8 +290,26 @@ function toYmd(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function buildCitations(leads: KommoLead[], limit = 5) {
+type AskCitation =
+  | {
+      type: 'lead';
+      id: number;
+      name: string;
+      price: number;
+      status_id: number;
+      pipeline_id: number;
+      created_at: number;
+    }
+  | {
+      type: 'contact';
+      id: number;
+      name: string;
+      created_at: number;
+    };
+
+function buildLeadCitations(leads: KommoLead[], limit = 5): AskCitation[] {
   return leads.slice(0, limit).map((lead) => ({
+    type: 'lead' as const,
     id: lead.id,
     name: lead.name,
     price: lead.price ?? 0,
@@ -303,12 +323,70 @@ function formatMoney(value: number): string {
   return value.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 }
 
+function isSalesQuestion(questionLower: string): boolean {
+  return (
+    questionLower.includes('venda') ||
+    questionLower.includes('vendas') ||
+    questionLower.includes('fechado') ||
+    questionLower.includes('ganho')
+  );
+}
+
+function filterSalesLeads(
+  leads: KommoLead[],
+  temporalFilter: string | null,
+  month: number | null,
+  category: string | null,
+): KommoLead[] {
+  let salesLeads = leads.filter((lead) => lead.status_id === 142);
+
+  if (temporalFilter) {
+    const { start, end } = getDateRange(temporalFilter);
+    salesLeads = salesLeads.filter((lead) => {
+      if (lead.closed_at === undefined) return false;
+      const closedAt = new Date(lead.closed_at * 1000);
+      return closedAt >= start && closedAt <= end;
+    });
+  }
+
+  if (month !== null) {
+    salesLeads = salesLeads.filter((lead) => {
+      if (lead.closed_at === undefined) return false;
+      const closedAt = new Date(lead.closed_at * 1000);
+      return closedAt.getMonth() === month && closedAt.getFullYear() === currentYear;
+    });
+  }
+
+  if (category) {
+    salesLeads = salesLeads.filter((lead) => (lead.name || '').toLowerCase().includes(category));
+  }
+
+  return salesLeads;
+}
+
+/**
+ * Sales filter by closed_at, so they need the full cached lead list.
+ * Lead/contact questions can use created_at server-side filters.
+ */
 async function loadLeadsForQuestion(
   kommoAPI: KommoAPI,
   temporalFilter: string | null,
   month: number | null,
+  mode: 'sales' | 'created_at',
 ): Promise<{ leads: KommoLead[]; cacheHit: boolean; queryPlan: string[] }> {
   const queryPlan: string[] = [];
+
+  if (mode === 'sales') {
+    const cacheHit = isCacheValid();
+    if (cacheHit) {
+      queryPlan.push('cache de leads em memória (vendas filtram closed_at localmente)');
+      return { leads: getCacheData(), cacheHit: true, queryPlan };
+    }
+    queryPlan.push('getAllLeads (vendas: um fetch + filtro local por closed_at/categoria)');
+    const leads = await kommoAPI.getAllLeads();
+    setCacheData(leads);
+    return { leads, cacheHit: false, queryPlan };
+  }
 
   if (month !== null) {
     const start = new Date(currentYear, month, 1);
@@ -354,62 +432,48 @@ export async function handleAskKommo(kommoAPI: KommoAPI, question: string): Prom
   const temporalFilter = detectTemporalFilter(questionLower);
   const category = getCategoryFromQuestion(question);
   const month = getMonthFromQuestion(question);
+  const salesQuestion = isSalesQuestion(questionLower);
 
   const {
     leads: leadsArray,
     cacheHit: isCacheHit,
     queryPlan,
-  } = await loadLeadsForQuestion(kommoAPI, temporalFilter, month);
+  } = await loadLeadsForQuestion(
+    kommoAPI,
+    temporalFilter,
+    month,
+    salesQuestion ? 'sales' : 'created_at',
+  );
 
   let response = '';
   const insights: string[] = [];
   const suggestions: string[] = [];
-  let citations: ReturnType<typeof buildCitations>;
+  let citations: AskCitation[];
   let analyzedLeads: KommoLead[];
 
-  if (
-    questionLower.includes('venda') ||
-    questionLower.includes('vendas') ||
-    questionLower.includes('fechado') ||
-    questionLower.includes('ganho')
-  ) {
-    if (temporalFilter) {
-      const { start, end } = getDateRange(temporalFilter);
-      queryPlan.push(`getSalesReport ${toYmd(start)}..${toYmd(end)}`);
-      const salesReport = await kommoAPI.getSalesReport(toYmd(start), toYmd(end));
-      response = `**Análise de Vendas**\n\n`;
-      response += `**Total de vendas:** ${salesReport.leads.won}\n`;
-      response += `**Valor total:** R$ ${formatMoney(salesReport.revenue.total)}\n`;
-      response += `**Ticket médio:** R$ ${formatMoney(salesReport.revenue.average)}\n`;
+  if (salesQuestion) {
+    const salesLeads = filterSalesLeads(leadsArray, temporalFilter, month, category);
+    analyzedLeads = salesLeads;
+    citations = buildLeadCitations(salesLeads);
+    const totalSales = salesLeads.length;
+    const totalValue = salesLeads.reduce((sum, lead) => sum + (lead.price || 0), 0);
+    const averageTicket = totalSales > 0 ? totalValue / totalSales : 0;
+    queryPlan.push('filtro local status_id=142 + closed_at/categoria');
+    response = `**Análise de Vendas**\n\n`;
+    response += `**Total de vendas:** ${totalSales}\n`;
+    response += `**Valor total:** R$ ${formatMoney(totalValue)}\n`;
+    response += `**Ticket médio:** R$ ${formatMoney(averageTicket)}\n`;
+    if (temporalFilter)
       response += `\n**Período:** ${periodNames[temporalFilter] || temporalFilter}\n`;
-      analyzedLeads = [];
-      citations = (salesReport.performance.by_user ?? []).slice(0, 5).map((row) => ({
-        id: row.user_id,
-        name: row.user_name,
-        price: row.revenue,
-        status_id: 0,
-        pipeline_id: 0,
-        created_at: 0,
-      }));
-      insights.push('Totais obtidos via getSalesReport com o período detectado.');
-    } else {
-      let salesLeads = leadsArray.filter((lead) => lead.status_id === 142);
-      if (category) {
-        salesLeads = salesLeads.filter((lead) =>
-          (lead.name || '').toLowerCase().includes(category),
-        );
+    if (month !== null) response += `\n**Mês:** ${monthNames[month]} de ${currentYear}\n`;
+    if (category) response += `\n**Categoria:** ${category}\n`;
+    if (citations.length > 0) {
+      response += `\n**Exemplos citados:**\n`;
+      for (const citation of citations) {
+        if (citation.type === 'lead') {
+          response += `• lead #${citation.id} ${citation.name} — R$ ${formatMoney(citation.price)}\n`;
+        }
       }
-      analyzedLeads = salesLeads;
-      citations = buildCitations(salesLeads);
-      const totalSales = salesLeads.length;
-      const totalValue = salesLeads.reduce((sum, lead) => sum + (lead.price || 0), 0);
-      const averageTicket = totalSales > 0 ? totalValue / totalSales : 0;
-      response = `**Análise de Vendas**\n\n`;
-      response += `**Total de vendas:** ${totalSales}\n`;
-      response += `**Valor total:** R$ ${formatMoney(totalValue)}\n`;
-      response += `**Ticket médio:** R$ ${formatMoney(averageTicket)}\n`;
-      if (month !== null) response += `\n**Mês:** ${monthNames[month]} de ${currentYear}\n`;
-      if (category) response += `\n**Categoria:** ${category}\n`;
     }
   } else if (
     category === 'contatos' ||
@@ -417,20 +481,19 @@ export async function handleAskKommo(kommoAPI: KommoAPI, question: string): Prom
     questionLower.includes('cliente')
   ) {
     queryPlan.push('getContacts limit=250');
-    const filteredLeads = filterLeadsByPeriod(leadsArray, null, null);
+    const filteredLeads = filterLeadsByPeriod(leadsArray, temporalFilter, month);
     const contacts = await kommoAPI.getContacts({ limit: 250 });
     const contactsArray = contacts._embedded?.contacts || [];
     analyzedLeads = filteredLeads;
-    citations = buildCitations(filteredLeads).concat(
-      contactsArray.slice(0, 5).map((contact) => ({
+    citations = [
+      ...buildLeadCitations(filteredLeads),
+      ...contactsArray.slice(0, 5).map((contact): AskCitation => ({
+        type: 'contact',
         id: contact.id,
         name: contact.name,
-        price: 0,
-        status_id: 0,
-        pipeline_id: 0,
         created_at: contact.created_at,
       })),
-    );
+    ];
     response = `**Análise de Contatos**\n\n`;
     response += `**Total de leads no recorte:** ${filteredLeads.length}\n`;
     response += `**Contatos retornados:** ${contactsArray.length}\n`;
@@ -444,7 +507,7 @@ export async function handleAskKommo(kommoAPI: KommoAPI, question: string): Prom
       );
     }
     analyzedLeads = filteredLeads;
-    citations = buildCitations(filteredLeads);
+    citations = buildLeadCitations(filteredLeads);
     const totalLeads = filteredLeads.length;
     const totalValue = filteredLeads.reduce((sum, lead) => sum + (lead.price || 0), 0);
     response = `**Análise de Leads**\n\n`;
@@ -456,7 +519,9 @@ export async function handleAskKommo(kommoAPI: KommoAPI, question: string): Prom
     if (citations.length > 0) {
       response += `\n**Exemplos citados:**\n`;
       for (const citation of citations) {
-        response += `• #${citation.id} ${citation.name} — R$ ${formatMoney(citation.price)}\n`;
+        if (citation.type === 'lead') {
+          response += `• lead #${citation.id} ${citation.name} — R$ ${formatMoney(citation.price)}\n`;
+        }
       }
     }
   } else if (
@@ -476,7 +541,7 @@ export async function handleAskKommo(kommoAPI: KommoAPI, question: string): Prom
     const totalLeads = leadsArray.length;
     const totalValue = leadsArray.reduce((sum, lead) => sum + (lead.price || 0), 0);
     analyzedLeads = leadsArray;
-    citations = buildCitations(leadsArray);
+    citations = buildLeadCitations(leadsArray);
     response = `Entendi sua mensagem: "${question}"\n\n`;
     response += `**Resumo geral:**\n`;
     response += `• Total de leads: ${totalLeads}\n`;
