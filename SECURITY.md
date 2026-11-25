@@ -45,5 +45,6 @@ acordo com a gravidade e a disponibilidade dos mantenedores.
   número de hops (`1`) em vez de `true`, para não confiar na cadeia inteira.
 - Mantenha a confirmação de escrita ativa (`confirm=true`); use
   `MCP_CONFIRM_WRITES=false` só em automações que assumam esse risco.
+- Use `MCP_READ_ONLY=true` em demos ou exploração sem intenção de escrita.
 - Não exponha o servidor MCP diretamente à internet sem uma camada de
   autenticação/proxy à sua frente.

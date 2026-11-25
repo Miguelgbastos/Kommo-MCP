@@ -1,7 +1,10 @@
 import {
   KommoAPI,
+  type KommoCompany,
+  type KommoContact,
   type KommoEntityType,
   type KommoLead,
+  type KommoTask,
   type LeadOrderField,
   type SortDirection,
 } from '../kommo-api.js';
@@ -122,19 +125,95 @@ export async function executeTool(
     case 'get_contacts': {
       const limit = (args?.limit as number) || 250;
       const page = (args?.page as number) || 1;
-      return textResult(await kommoAPI.getContacts({ limit, page }));
+      return textResult(
+        await kommoAPI.getContacts({
+          limit,
+          page,
+          ...(typeof args?.query === 'string' ? { query: args.query } : {}),
+        }),
+      );
+    }
+
+    case 'get_contact': {
+      const id = args?.id as number;
+      if (typeof id !== 'number') return errorResult('Requer id (número).');
+      return textResult(await kommoAPI.getContact(id));
+    }
+
+    case 'create_contact': {
+      const name = args?.name;
+      if (typeof name !== 'string') return errorResult('Requer name (texto).');
+      const createData: Partial<KommoContact> = { name };
+      if (typeof args?.first_name === 'string') createData.first_name = args.first_name;
+      if (typeof args?.last_name === 'string') createData.last_name = args.last_name;
+      if (typeof args?.responsible_user_id === 'number') {
+        createData.responsible_user_id = args.responsible_user_id;
+      }
+      return textResult(await kommoAPI.createContact(createData));
+    }
+
+    case 'update_contact': {
+      const id = args?.id as number;
+      if (typeof id !== 'number') return errorResult('Requer id (número).');
+      const updateData: Partial<KommoContact> = {};
+      if (typeof args?.name === 'string') updateData.name = args.name;
+      if (typeof args?.first_name === 'string') updateData.first_name = args.first_name;
+      if (typeof args?.last_name === 'string') updateData.last_name = args.last_name;
+      if (typeof args?.responsible_user_id === 'number') {
+        updateData.responsible_user_id = args.responsible_user_id;
+      }
+      return textResult(await kommoAPI.updateContact(id, updateData));
     }
 
     case 'get_companies': {
       const limit = (args?.limit as number) || 250;
       const page = (args?.page as number) || 1;
-      return textResult(await kommoAPI.getCompanies({ limit, page }));
+      return textResult(
+        await kommoAPI.getCompanies({
+          limit,
+          page,
+          ...(typeof args?.query === 'string' ? { query: args.query } : {}),
+        }),
+      );
+    }
+
+    case 'get_company': {
+      const id = args?.id as number;
+      if (typeof id !== 'number') return errorResult('Requer id (número).');
+      return textResult(await kommoAPI.getCompany(id));
+    }
+
+    case 'create_company': {
+      const name = args?.name;
+      if (typeof name !== 'string') return errorResult('Requer name (texto).');
+      const createData: Partial<KommoCompany> = { name };
+      if (typeof args?.responsible_user_id === 'number') {
+        createData.responsible_user_id = args.responsible_user_id;
+      }
+      return textResult(await kommoAPI.createCompany(createData));
+    }
+
+    case 'update_company': {
+      const id = args?.id as number;
+      if (typeof id !== 'number') return errorResult('Requer id (número).');
+      const updateData: Partial<KommoCompany> = {};
+      if (typeof args?.name === 'string') updateData.name = args.name;
+      if (typeof args?.responsible_user_id === 'number') {
+        updateData.responsible_user_id = args.responsible_user_id;
+      }
+      return textResult(await kommoAPI.updateCompany(id, updateData));
     }
 
     case 'get_tasks': {
       const limit = (args?.limit as number) || 250;
       const page = (args?.page as number) || 1;
       return textResult(await kommoAPI.getTasks({ limit, page }));
+    }
+
+    case 'get_task': {
+      const id = args?.id as number;
+      if (typeof id !== 'number') return errorResult('Requer id (número).');
+      return textResult(await kommoAPI.getTask(id));
     }
 
     case 'create_task': {
@@ -162,6 +241,63 @@ export async function executeTool(
             ? { responsible_user_id: args.responsible_user_id }
             : {}),
         }),
+      );
+    }
+
+    case 'update_task': {
+      const id = args?.id as number;
+      if (typeof id !== 'number') return errorResult('Requer id (número).');
+      const updateData: Partial<KommoTask> = {};
+      if (typeof args?.text === 'string') updateData.text = args.text;
+      if (typeof args?.complete_till === 'number') updateData.complete_till = args.complete_till;
+      if (typeof args?.is_completed === 'boolean') updateData.is_completed = args.is_completed;
+      if (typeof args?.responsible_user_id === 'number') {
+        updateData.responsible_user_id = args.responsible_user_id;
+      }
+      return textResult(await kommoAPI.updateTask(id, updateData));
+    }
+
+    case 'search_entities': {
+      const query = args?.query;
+      if (typeof query !== 'string' || !query.trim()) {
+        return errorResult('Requer query (texto).');
+      }
+      const entityTypes = Array.isArray(args?.entity_types)
+        ? (args.entity_types.filter(
+            (value): value is 'leads' | 'contacts' | 'companies' =>
+              value === 'leads' || value === 'contacts' || value === 'companies',
+          ) as Array<'leads' | 'contacts' | 'companies'>)
+        : (['leads', 'contacts', 'companies'] as const);
+      if (entityTypes.length === 0) {
+        return errorResult('entity_types deve incluir leads, contacts e/ou companies.');
+      }
+      const limit = typeof args?.limit === 'number' ? args.limit : 25;
+      return textResult(await kommoAPI.searchEntities(query.trim(), [...entityTypes], limit));
+    }
+
+    case 'link_entities': {
+      const entityType = args?.entity_type;
+      const entityId = args?.entity_id as number;
+      const toEntityType = args?.to_entity_type;
+      const toEntityId = args?.to_entity_id as number;
+      if (
+        !isEntityType(entityType) ||
+        typeof entityId !== 'number' ||
+        (toEntityType !== 'leads' && toEntityType !== 'contacts' && toEntityType !== 'companies') ||
+        typeof toEntityId !== 'number'
+      ) {
+        return errorResult(
+          'Requer entity_type, entity_id, to_entity_type (leads|contacts|companies) e to_entity_id.',
+        );
+      }
+      return textResult(
+        await kommoAPI.linkEntities(entityType, entityId, [
+          {
+            to_entity_id: toEntityId,
+            to_entity_type: toEntityType,
+            ...(typeof args?.is_main === 'boolean' ? { metadata: { is_main: args.is_main } } : {}),
+          },
+        ]),
       );
     }
 

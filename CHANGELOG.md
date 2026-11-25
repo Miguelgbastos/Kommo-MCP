@@ -9,6 +9,12 @@ e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ### Adicionado
 
+- Tools de domínio: `get/create/update_contact`, `get/create/update_company`,
+  `get/update_task`, `search_entities` e `link_entities`.
+- Modo `MCP_READ_ONLY` para bloquear tools de escrita em demos/exploração.
+- Endpoint `/metrics` com contadores operacionais sem PII/segredos.
+- `ask_kommo` passa a expor `query_plan` e `citations` e a preferir filtros
+  temporais via `listLeads`/`getSalesReport`.
 - Allow-list opcional de IPs clientes (`MCP_ALLOWED_IPS`) e suporte a
   `MCP_TRUST_PROXY` para rate limit/allow-list atrás de reverse proxy.
   `MCP_TRUST_PROXY=1` passa a significar um hop (não `true`/cadeia inteira).

@@ -20,7 +20,7 @@ test('stdio transport serves local MCP clients', async () => {
     await client.connect(transport);
     assert.equal(client.getProtocolEra(), 'legacy');
     const { tools } = await client.listTools();
-    assert.equal(tools.length, 23);
+    assert.equal(tools.length, 33);
   } finally {
     await client.close();
   }

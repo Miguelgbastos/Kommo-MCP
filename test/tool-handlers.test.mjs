@@ -96,10 +96,84 @@ test('create_lead forwards only the supplied payload', async () => {
 });
 
 test('write tool schemas reject undeclared properties', () => {
-  for (const name of ['create_lead', 'update_lead', 'create_task']) {
+  for (const name of [
+    'create_lead',
+    'update_lead',
+    'create_contact',
+    'update_contact',
+    'create_company',
+    'update_company',
+    'create_task',
+    'update_task',
+    'link_entities',
+  ]) {
     const tool = MCP_TOOLS.find((candidate) => candidate.name === name);
     assert.equal(tool?.inputSchema.additionalProperties, false, name);
   }
+});
+
+test('create_contact forwards only declared fields', async () => {
+  const calls = [];
+  const api = {
+    async createContact(input) {
+      calls.push(input);
+      return { id: 9, ...input };
+    },
+  };
+
+  const result = await executeTool(api, 'create_contact', {
+    name: 'Maria',
+    first_name: 'Maria',
+    created_by: 1,
+  });
+
+  assert.deepEqual(calls, [{ name: 'Maria', first_name: 'Maria' }]);
+  assert.deepEqual(resultData(result), { id: 9, name: 'Maria', first_name: 'Maria' });
+});
+
+test('link_entities posts the documented payload', async () => {
+  const calls = [];
+  const api = {
+    async linkEntities(entityType, entityId, links) {
+      calls.push({ entityType, entityId, links });
+      return { _embedded: { links } };
+    },
+  };
+
+  const result = await executeTool(api, 'link_entities', {
+    entity_type: 'leads',
+    entity_id: 10,
+    to_entity_type: 'contacts',
+    to_entity_id: 20,
+    is_main: true,
+  });
+
+  assert.deepEqual(calls, [
+    {
+      entityType: 'leads',
+      entityId: 10,
+      links: [{ to_entity_id: 20, to_entity_type: 'contacts', metadata: { is_main: true } }],
+    },
+  ]);
+  assert.equal(result.isError, undefined);
+});
+
+test('search_entities delegates query and entity types', async () => {
+  const calls = [];
+  const api = {
+    async searchEntities(query, entityTypes, limit) {
+      calls.push({ query, entityTypes, limit });
+      return { query, results: { leads: [] } };
+    },
+  };
+
+  await executeTool(api, 'search_entities', {
+    query: 'Acme',
+    entity_types: ['leads', 'companies'],
+    limit: 10,
+  });
+
+  assert.deepEqual(calls, [{ query: 'Acme', entityTypes: ['leads', 'companies'], limit: 10 }]);
 });
 
 test('move_lead selects the pipeline operation when pipeline_id is present', async () => {
@@ -157,9 +231,24 @@ test('every advertised tool has an executable handler', async () => {
     get_sales_report: { dateFrom: '2026-01-01', dateTo: '2026-01-31' },
     get_dashboard: {},
     get_contacts: {},
+    get_contact: { id: 1 },
+    create_contact: { name: 'Maria' },
+    update_contact: { id: 1, name: 'Maria' },
     get_companies: {},
+    get_company: { id: 1 },
+    create_company: { name: 'Acme' },
+    update_company: { id: 1, name: 'Acme' },
     get_tasks: {},
+    get_task: { id: 1 },
     create_task: { text: 'Teste', entity_id: 1, entity_type: 'leads', complete_till: 1 },
+    update_task: { id: 1, text: 'Atualizada' },
+    search_entities: { query: 'Acme' },
+    link_entities: {
+      entity_type: 'leads',
+      entity_id: 1,
+      to_entity_type: 'contacts',
+      to_entity_id: 2,
+    },
     get_users: {},
     get_loss_reasons: {},
     get_loss_reason: { id: 1 },
