@@ -9,7 +9,16 @@ import { KommoAPI } from './kommo-api.js';
 import { MCP_TOOLS } from './mcp/tool-definitions.js';
 import { MCP_RESOURCES } from './mcp/resources.js';
 import { MCP_PROMPTS } from './mcp/prompts.js';
-import { createKommoMcpServer } from './mcp/server.js';
+import { createKommoMcpServer, isReadOnlyMode } from './mcp/server.js';
+import {
+  getRuntimeMetrics,
+  recordHttpRequest,
+  recordHttpResponse,
+  recordMcpForbidden,
+  recordMcpRateLimited,
+  recordMcpRequest,
+  recordMcpUnauthorized,
+} from './metrics.js';
 
 dotenv.config({ quiet: true });
 
@@ -183,6 +192,9 @@ export function createApp(options: AppOptions = {}) {
   if (process.env.MCP_CONFIRM_WRITES === 'false') {
     logger.warn('Write confirmation is disabled by MCP_CONFIRM_WRITES=false.');
   }
+  if (isReadOnlyMode()) {
+    logger.warn('MCP_READ_ONLY is enabled; write tools will be rejected.');
+  }
 
   const rateLimitWindows = new Map<string, { count: number; resetAt: number }>();
 
@@ -229,12 +241,17 @@ export function createApp(options: AppOptions = {}) {
   if (trustProxy !== false) {
     app.set('trust proxy', trustProxy);
   }
+  app.use((req, res, next) => {
+    recordHttpRequest();
+    res.on('finish', () => recordHttpResponse(res.statusCode));
+    next();
+  });
   app.use(
     cors({
       origin(origin, callback) {
         callback(null, originAllowed(origin));
       },
-      methods: ['POST', 'OPTIONS'],
+      methods: ['GET', 'POST', 'OPTIONS'],
       allowedHeaders: [
         'Content-Type',
         'Accept',
@@ -255,6 +272,7 @@ export function createApp(options: AppOptions = {}) {
       tools_count: MCP_TOOLS.length,
       resources_count: MCP_RESOURCES.length,
       prompts_count: MCP_PROMPTS.length,
+      read_only: isReadOnlyMode(),
       environment: process.env.NODE_ENV || 'development',
     });
   });
@@ -267,19 +285,27 @@ export function createApp(options: AppOptions = {}) {
     res.json({ status: 'ready', timestamp: new Date().toISOString() });
   });
 
+  app.get('/metrics', (_req, res) => {
+    res.json(getRuntimeMetrics());
+  });
+
   app.use('/mcp', (req, res, next) => {
+    recordMcpRequest();
     const clientAddress = normalizeIpAddress(req.ip || req.socket.remoteAddress) || 'unknown';
     if (!clientAddressAllowed(clientAddress)) {
+      recordMcpForbidden();
       res.status(403).json(jsonRpcError(-32003, 'Client address not allowed'));
       return;
     }
     const rateLimit = rateLimitExceeded(clientAddress);
     if (rateLimit.limited) {
+      recordMcpRateLimited();
       res.set('Retry-After', String(rateLimit.retryAfter));
       res.status(429).json(jsonRpcError(-32002, 'Too many requests'));
       return;
     }
     if (!originAllowed(req.header('origin'))) {
+      recordMcpForbidden();
       res.status(403).json(jsonRpcError(-32000, 'Origin not allowed'));
       return;
     }
@@ -287,6 +313,7 @@ export function createApp(options: AppOptions = {}) {
       const bearer = req.header('authorization')?.replace(/^Bearer\s+/i, '');
       const apiKey = req.header('x-api-key');
       if (!safeTokenEquals(bearer || apiKey, authToken)) {
+        recordMcpUnauthorized();
         res.status(401).json(jsonRpcError(-32001, 'Unauthorized'));
         return;
       }

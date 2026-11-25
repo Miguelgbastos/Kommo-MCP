@@ -44,17 +44,17 @@ Desktop, etc.).
   compatibilidade stateless para clientes da família 2025
 - **Dois transportes oficiais**: Streamable HTTP para serviços remotos e
   `stdio` para clientes locais
-- **23 tools**: leads, contatos, empresas, tarefas, pipelines, notas,
-  relatórios, dashboard, Salesbot, motivos de perda
+- **33 tools**: leads, contatos, empresas, tarefas, busca unificada, vínculos,
+  pipelines, notas, relatórios, dashboard, Salesbot, motivos de perda
 - **5 resources**: relatório de vendas, pipelines, motivos de perda,
   dashboard, conta
 - **4 prompts**: templates para análise de vendas, leads, pipelines e motivos
   de perda
-- **`ask_kommo`**: interface conversacional em linguagem natural
+- **`ask_kommo`**: interface conversacional com plano de consulta e citações
 - **Arquitetura modular**: código organizado em módulos (`kommo-api`, `mcp/`,
   `ask-kommo`)
-- **Segurança**: validação de Origin, validação dos argumentos das tools e
-  autenticação obrigatória fora de localhost
+- **Segurança**: validação de Origin, allow-list de IPs, modo somente leitura,
+  autenticação obrigatória fora de localhost e `/metrics` sem PII
 
 ## Pré-requisitos
 
@@ -107,6 +107,7 @@ O servidor sobe em `http://127.0.0.1:3001/mcp`.
 | `MCP_TRUST_PROXY`           | Confia em `X-Forwarded-For` (`1`=um hop; `true`=cadeia inteira) | `false`     |
 | `MCP_RATE_LIMIT_PER_MINUTE` | Limite de requisições ao `/mcp` por endereço e por processo     | `120`       |
 | `MCP_CONFIRM_WRITES`        | Exige `confirm=true`; somente `false` desativa a proteção       | `true`      |
+| `MCP_READ_ONLY`             | Bloqueia tools de escrita (`true`/`1`)                          | `false`     |
 | `LOG_LEVEL`                 | Nível de log                                                    | `info`      |
 
 ## Execução
@@ -209,6 +210,8 @@ pela tela de Connectors.
 - **Health**: `GET http://localhost:3001/health`
 - **Readiness**: `GET http://localhost:3001/ready` — verifica se URL e token
   obrigatórios foram configurados
+- **Metrics**: `GET http://localhost:3001/metrics` — contadores operacionais
+  sem tokens ou dados pessoais
 
 ## Ferramentas MCP
 
@@ -238,13 +241,23 @@ pela tela de Connectors.
 
 ### Contatos, empresas e tarefas
 
-| Tool            | Descrição                         |
-| --------------- | --------------------------------- |
-| `get_contacts`  | Listar contatos                   |
-| `get_companies` | Listar empresas                   |
-| `get_tasks`     | Listar tarefas                    |
-| `create_task`   | Criar tarefa vinculada a entidade |
-| `get_users`     | Listar usuários da conta          |
+| Tool              | Descrição                                         |
+| ----------------- | ------------------------------------------------- |
+| `get_contacts`    | Listar contatos (`query` opcional)                |
+| `get_contact`     | Obter contato por ID                              |
+| `create_contact`  | Criar contato                                     |
+| `update_contact`  | Atualizar contato                                 |
+| `get_companies`   | Listar empresas (`query` opcional)                |
+| `get_company`     | Obter empresa por ID                              |
+| `create_company`  | Criar empresa                                     |
+| `update_company`  | Atualizar empresa                                 |
+| `get_tasks`       | Listar tarefas                                    |
+| `get_task`        | Obter tarefa por ID                               |
+| `create_task`     | Criar tarefa vinculada a entidade                 |
+| `update_task`     | Atualizar tarefa                                  |
+| `search_entities` | Busca unificada em leads/contatos/empresas        |
+| `link_entities`   | Vincular entidades (`/api/v4/{entity}/{id}/link`) |
+| `get_users`       | Listar usuários da conta                          |
 
 ### Notas
 

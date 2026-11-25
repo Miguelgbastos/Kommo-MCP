@@ -22,7 +22,7 @@ async function verifyDiscovery(url, createLeadCalls, versionNegotiation) {
       client.listPrompts(),
     ]);
 
-    assert.equal(tools.length, 23);
+    assert.equal(tools.length, 33);
     assert.equal(resources.length, 5);
     assert.equal(prompts.length, 4);
     assert.equal(tools.find((tool) => tool.name === 'get_leads')?.annotations?.readOnlyHint, true);
@@ -120,6 +120,46 @@ test('MCP_CONFIRM_WRITES=false explicitly opts out of write confirmation', async
     });
     assert.equal(created.isError, undefined);
     assert.deepEqual(createLeadCalls, [{ name: 'Sem confirmação' }]);
+  } finally {
+    await client.close();
+  }
+});
+
+test('MCP_READ_ONLY blocks write tools even with confirm=true', async (context) => {
+  const previousReadOnly = process.env.MCP_READ_ONLY;
+  const previousConfirmation = process.env.MCP_CONFIRM_WRITES;
+  process.env.MCP_READ_ONLY = 'true';
+  process.env.MCP_CONFIRM_WRITES = 'false';
+  context.after(() => {
+    if (previousReadOnly === undefined) delete process.env.MCP_READ_ONLY;
+    else process.env.MCP_READ_ONLY = previousReadOnly;
+    if (previousConfirmation === undefined) delete process.env.MCP_CONFIRM_WRITES;
+    else process.env.MCP_CONFIRM_WRITES = previousConfirmation;
+  });
+
+  const kommoAPI = {
+    async createLead() {
+      assert.fail('createLead must not run in read-only mode');
+    },
+  };
+  const server = createApp({ logLevel: 'silent', kommoAPI }).listen(0, '127.0.0.1');
+  await new Promise((resolve) => server.once('listening', resolve));
+  context.after(() => new Promise((resolve) => server.close(resolve)));
+
+  const address = server.address();
+  assert.ok(address && typeof address === 'object');
+  const client = new Client({ name: 'read-only-test', version: '1.0.0' });
+  const transport = new StreamableHTTPClientTransport(
+    new URL(`http://127.0.0.1:${address.port}/mcp`),
+  );
+  try {
+    await client.connect(transport);
+    const blocked = await client.callTool({
+      name: 'create_lead',
+      arguments: { name: 'Bloqueado', confirm: true },
+    });
+    assert.equal(blocked.isError, true);
+    assert.match(blocked.content[0].text, /somente leitura|MCP_READ_ONLY/i);
   } finally {
     await client.close();
   }

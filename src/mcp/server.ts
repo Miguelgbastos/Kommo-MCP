@@ -11,7 +11,13 @@ const WRITE_TOOLS = new Set([
   'create_lead',
   'update_lead',
   'move_lead',
+  'create_contact',
+  'update_contact',
+  'create_company',
+  'update_company',
   'create_task',
+  'update_task',
+  'link_entities',
   'add_note',
   'pin_note',
   'unpin_note',
@@ -21,6 +27,10 @@ const WRITE_TOOLS = new Set([
 
 export function writeConfirmationRequired(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.MCP_CONFIRM_WRITES !== 'false';
+}
+
+export function isReadOnlyMode(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.MCP_READ_ONLY === 'true' || env.MCP_READ_ONLY === '1';
 }
 
 function safeToolError(error: unknown) {
@@ -81,6 +91,17 @@ export function createKommoMcpServer(kommoAPI: KommoAPI): McpServer {
         },
       },
       async (args) => {
+        if (isWrite && isReadOnlyMode()) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: 'Servidor em modo somente leitura (MCP_READ_ONLY). Operações de escrita estão bloqueadas.',
+              },
+            ],
+            isError: true,
+          };
+        }
         if (isWrite && writeConfirmationRequired() && args.confirm !== true) {
           return {
             content: [

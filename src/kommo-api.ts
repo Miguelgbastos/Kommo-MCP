@@ -504,6 +504,24 @@ export class KommoAPI {
     return allLeads;
   }
 
+  async getAllLeadsMatching(
+    options: Omit<LeadListOptions, 'limit' | 'page'> = {},
+  ): Promise<KommoLead[]> {
+    const allLeads: KommoLead[] = [];
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      const data = await this.listLeads({ ...options, page, limit: 250 });
+      const leads = data._embedded?.leads ?? [];
+      allLeads.push(...leads);
+      hasMore = leads.length === 250;
+      page += 1;
+    }
+
+    return allLeads;
+  }
+
   async getAllTasks(params?: KommoQueryParams): Promise<KommoTask[]> {
     const allTasks: KommoTask[] = [];
     let page = 1;
@@ -888,5 +906,62 @@ export class KommoAPI {
       entity_type: entityType,
     });
     return { accepted: response.status === 202 };
+  }
+
+  async linkEntities(
+    entityType: KommoEntityType,
+    entityId: number,
+    links: Array<{
+      to_entity_id: number;
+      to_entity_type: 'leads' | 'contacts' | 'companies' | 'catalog_elements';
+      metadata?: {
+        is_main?: boolean;
+        catalog_id?: number;
+        quantity?: number;
+        updated_by?: number;
+      };
+    }>,
+  ): Promise<unknown> {
+    const response = await this.client.post(`/api/v4/${entityType}/${entityId}/link`, links);
+    return response.data;
+  }
+
+  async searchEntities(
+    query: string,
+    entityTypes: Array<'leads' | 'contacts' | 'companies'> = ['leads', 'contacts', 'companies'],
+    limit = 25,
+  ): Promise<{
+    query: string;
+    results: {
+      leads?: KommoLead[];
+      contacts?: KommoContact[];
+      companies?: KommoCompany[];
+    };
+  }> {
+    const cappedLimit = Math.min(Math.max(limit, 1), 50);
+    const results: {
+      leads?: KommoLead[];
+      contacts?: KommoContact[];
+      companies?: KommoCompany[];
+    } = {};
+
+    await Promise.all(
+      entityTypes.map(async (entityType) => {
+        if (entityType === 'leads') {
+          const data = await this.listLeads({ query, limit: cappedLimit, page: 1 });
+          results.leads = data._embedded?.leads ?? [];
+          return;
+        }
+        if (entityType === 'contacts') {
+          const data = await this.getContacts({ query, limit: cappedLimit, page: 1 });
+          results.contacts = data._embedded?.contacts ?? [];
+          return;
+        }
+        const data = await this.getCompanies({ query, limit: cappedLimit, page: 1 });
+        results.companies = data._embedded?.companies ?? [];
+      }),
+    );
+
+    return { query, results };
   }
 }

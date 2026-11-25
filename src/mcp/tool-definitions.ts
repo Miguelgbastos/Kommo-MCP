@@ -156,7 +156,54 @@ export const MCP_TOOLS: McpToolDefinition[] = [
     description: 'Obter lista de contatos do Kommo CRM',
     inputSchema: {
       type: 'object',
-      properties: paginationProperties,
+      properties: {
+        ...paginationProperties,
+        query: { type: 'string', description: 'Filtro de busca (query da API)' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'get_contact',
+    title: 'Obter contato',
+    description: 'Obter um contato específico pelo ID',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'number', description: 'ID do contato' } },
+      required: ['id'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'create_contact',
+    title: 'Criar contato',
+    description: 'Criar um novo contato no Kommo CRM',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Nome completo do contato' },
+        first_name: { type: 'string', description: 'Primeiro nome' },
+        last_name: { type: 'string', description: 'Sobrenome' },
+        responsible_user_id: { type: 'number', description: 'ID do usuário responsável' },
+      },
+      required: ['name'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'update_contact',
+    title: 'Atualizar contato',
+    description: 'Atualizar um contato existente',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'number', description: 'ID do contato' },
+        name: { type: 'string', description: 'Nome completo do contato' },
+        first_name: { type: 'string', description: 'Primeiro nome' },
+        last_name: { type: 'string', description: 'Sobrenome' },
+        responsible_user_id: { type: 'number', description: 'ID do usuário responsável' },
+      },
+      required: ['id'],
       additionalProperties: false,
     },
   },
@@ -166,7 +213,50 @@ export const MCP_TOOLS: McpToolDefinition[] = [
     description: 'Obter lista de empresas do Kommo CRM',
     inputSchema: {
       type: 'object',
-      properties: paginationProperties,
+      properties: {
+        ...paginationProperties,
+        query: { type: 'string', description: 'Filtro de busca (query da API)' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'get_company',
+    title: 'Obter empresa',
+    description: 'Obter uma empresa específica pelo ID',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'number', description: 'ID da empresa' } },
+      required: ['id'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'create_company',
+    title: 'Criar empresa',
+    description: 'Criar uma nova empresa no Kommo CRM',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Nome da empresa' },
+        responsible_user_id: { type: 'number', description: 'ID do usuário responsável' },
+      },
+      required: ['name'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'update_company',
+    title: 'Atualizar empresa',
+    description: 'Atualizar uma empresa existente',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'number', description: 'ID da empresa' },
+        name: { type: 'string', description: 'Nome da empresa' },
+        responsible_user_id: { type: 'number', description: 'ID do usuário responsável' },
+      },
+      required: ['id'],
       additionalProperties: false,
     },
   },
@@ -177,6 +267,17 @@ export const MCP_TOOLS: McpToolDefinition[] = [
     inputSchema: {
       type: 'object',
       properties: paginationProperties,
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'get_task',
+    title: 'Obter tarefa',
+    description: 'Obter uma tarefa específica pelo ID',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'number', description: 'ID da tarefa' } },
+      required: ['id'],
       additionalProperties: false,
     },
   },
@@ -194,6 +295,67 @@ export const MCP_TOOLS: McpToolDefinition[] = [
         responsible_user_id: { type: 'number', description: 'ID do usuário responsável' },
       },
       required: ['text', 'entity_id', 'entity_type', 'complete_till'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'update_task',
+    title: 'Atualizar tarefa',
+    description: 'Atualizar texto, prazo ou conclusão de uma tarefa',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'number', description: 'ID da tarefa' },
+        text: { type: 'string', description: 'Texto da tarefa' },
+        complete_till: { type: 'number', description: 'Timestamp Unix de conclusão' },
+        is_completed: { type: 'boolean', description: 'Marca a tarefa como concluída' },
+        responsible_user_id: { type: 'number', description: 'ID do usuário responsável' },
+      },
+      required: ['id'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'search_entities',
+    title: 'Busca unificada',
+    description: 'Buscar leads, contatos e/ou empresas pela query da API Kommo',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Texto de busca' },
+        entity_types: {
+          type: 'array',
+          description: 'Tipos a incluir (padrão: leads, contacts, companies)',
+          items: { type: 'string', enum: ['leads', 'contacts', 'companies'] },
+        },
+        limit: { type: 'number', description: 'Máximo por tipo (padrão: 25, máx.: 50)' },
+      },
+      required: ['query'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'link_entities',
+    title: 'Vincular entidades',
+    description:
+      'Vincular um contato, empresa ou lead a outra entidade via POST /api/v4/{entity}/{id}/link',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        entity_type: entityTypeProperty,
+        entity_id: { type: 'number', description: 'ID da entidade de origem' },
+        to_entity_type: {
+          type: 'string',
+          enum: ['leads', 'contacts', 'companies'],
+          description: 'Tipo da entidade de destino',
+        },
+        to_entity_id: { type: 'number', description: 'ID da entidade de destino' },
+        is_main: {
+          type: 'boolean',
+          description: 'Se true, marca o contato como principal no lead',
+        },
+      },
+      required: ['entity_type', 'entity_id', 'to_entity_type', 'to_entity_id'],
       additionalProperties: false,
     },
   },

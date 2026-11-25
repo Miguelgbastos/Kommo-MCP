@@ -25,6 +25,20 @@ test('health reports the modern protocol without exposing the Kommo account URL'
   assert.equal(response.body.status, 'healthy');
   assert.equal(response.body.protocol_version, '2026-07-28');
   assert.equal(response.body.kommo_base_url, undefined);
+  assert.equal(typeof response.body.read_only, 'boolean');
+});
+
+test('metrics endpoint exposes counters without secrets', async () => {
+  const app = createApp({ logLevel: 'silent', authToken: 'test-secret' });
+  await request(app).get('/health').expect(200);
+  await request(app).post('/mcp').set('Accept', accept).send(legacyInitialize()).expect(401);
+
+  const metrics = await request(app).get('/metrics').expect(200);
+  assert.equal(typeof metrics.body.uptime_seconds, 'number');
+  assert.ok(metrics.body.http_requests_total >= 2);
+  assert.ok(metrics.body.mcp_unauthorized_total >= 1);
+  assert.equal(metrics.body.kommo_access_token, undefined);
+  assert.equal(metrics.body.mcp_auth_token, undefined);
 });
 
 test('readiness reports missing configuration without affecting liveness', async () => {
